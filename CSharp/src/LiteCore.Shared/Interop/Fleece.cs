@@ -29,6 +29,17 @@ using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
+
+#if LITECORE_PACKAGED
+    internal
+#else
+    public
+#endif
+        unsafe interface IFLEncodable
+    {
+        void FLEncode(FLEncoder* enc);
+    }
+
 #if LITECORE_PACKAGED
     internal
 #else
@@ -284,6 +295,9 @@ namespace LiteCore.Interop
             switch (obj) {
                 case null:
                     Native.FLEncoder_WriteNull(enc);
+                    break;
+                case IFLEncodable flObj:
+                    flObj.FLEncode(enc);
                     break;
                 case IDictionary<string, object> dict:
                     dict.FLEncode(enc);

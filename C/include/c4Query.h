@@ -24,6 +24,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+    C4_ASSUME_NONNULL_BEGIN
 
     /** \defgroup QueryingDB Querying the Database
         @{ */
@@ -49,10 +50,10 @@ extern "C" {
         @result  A new C4Query, or NULL on failure. */
     C4Query* c4query_new(C4Database *database,
                          C4String expression,
-                         C4Error *error) C4API;
+                         C4Error* C4NULLABLE error) C4API;
 
     /** Frees a query.  It is legal to pass NULL. */
-    void c4query_free(C4Query*) C4API;
+    void c4query_free(C4Query* C4NULLABLE query) C4API;
 
     /** Returns a string describing the implementation of the compiled query.
         This is intended to be read by a developer for purposes of optimizing the query, especially
@@ -104,7 +105,7 @@ extern "C" {
         uint32_t fullTextMatchCount;
 
         /** Array with details of each full-text match */
-        const C4FullTextMatch *fullTextMatches;
+        const C4FullTextMatch * C4NULLABLE fullTextMatches;
     } C4QueryEnumerator;
 
 
@@ -118,10 +119,10 @@ extern "C" {
                 bind. Any unbound parameters will be `null`.
         @param outError  On failure, will be set to the error status.
         @return  An enumerator for reading the rows, or NULL on error. */
-    C4QueryEnumerator* c4query_run(C4Query *query C4NONNULL,
-                                   const C4QueryOptions *options,
+    C4QueryEnumerator* c4query_run(C4Query *query,
+                                   const C4QueryOptions * C4NULLABLE options,
                                    C4String encodedParameters,
-                                   C4Error *outError) C4API;
+                                   C4Error* C4NULLABLE outError) C4API;
 
     /** Given a C4FullTextMatch from the enumerator, returns the entire text of the property that
         was matched. (The result depends only on the term's `dataSource` and `property` fields,
@@ -129,22 +130,22 @@ extern "C" {
         redundant calls with the same values.)
         To find the actual word that was matched, use the term's `start` and `length` fields
         to get a substring of the returned (UTF-8) string. */
-    C4StringResult c4query_fullTextMatched(C4Query *query C4NONNULL,
-                                           const C4FullTextMatch *term C4NONNULL,
-                                           C4Error *outError) C4API;
+    C4StringResult c4query_fullTextMatched(C4Query *query,
+                                           const C4FullTextMatch *term,
+                                           C4Error* C4NULLABLE outError) C4API;
 
     /** Advances a query enumerator to the next row, populating its fields.
         Returns true on success, false at the end of enumeration or on error. */
-    bool c4queryenum_next(C4QueryEnumerator *e C4NONNULL,
-                          C4Error *outError) C4API;
+    bool c4queryenum_next(C4QueryEnumerator *e,
+                          C4Error* C4NULLABLE outError) C4API;
 
     /** Returns the total number of rows in the query, if known.
         Not all query enumerators may support this (but the current implementation does.)
         @param e  The query enumerator
         @param outError  On failure, an error will be stored here (probably kC4ErrorUnsupported.)
         @return  The number of rows, or -1 on failure. */
-    int64_t c4queryenum_getRowCount(C4QueryEnumerator *e C4NONNULL,
-                                     C4Error *outError) C4API;
+    int64_t c4queryenum_getRowCount(C4QueryEnumerator *e,
+                                     C4Error* C4NULLABLE outError) C4API;
 
     /** Jumps to a specific row. Not all query enumerators may support this (but the current
         implementation does.)
@@ -152,21 +153,21 @@ extern "C" {
         @param rowIndex  The number of the row, starting at 0
         @param outError  On failure, an error will be stored here (probably kC4ErrorUnsupported.)
         @return  True on success, false on failure. */
-    bool c4queryenum_seek(C4QueryEnumerator *e C4NONNULL,
+    bool c4queryenum_seek(C4QueryEnumerator *e,
                           uint64_t rowIndex,
-                          C4Error *outError) C4API;
+                          C4Error* C4NULLABLE outError) C4API;
 
     /** Checks whether the query results have changed since this enumerator was created;
         if so, returns a new enumerator. Otherwise returns NULL. */
-    C4QueryEnumerator* c4queryenum_refresh(C4QueryEnumerator *e C4NONNULL,
-                                           C4Error *outError) C4API;
+    C4QueryEnumerator* c4queryenum_refresh(C4QueryEnumerator *e,
+                                           C4Error* C4NULLABLE outError) C4API;
 
     /** Closes an enumerator without freeing it. This is optional, but can be used to free up
         resources if the enumeration has not reached its end, but will not be freed for a while. */
-    void c4queryenum_close(C4QueryEnumerator *e) C4API;
+    void c4queryenum_close(C4QueryEnumerator * C4NULLABLE e) C4API;
 
     /** Frees a query enumerator. */
-    void c4queryenum_free(C4QueryEnumerator *e) C4API;
+    void c4queryenum_free(C4QueryEnumerator * C4NULLABLE e) C4API;
 
     /** @} */
 
@@ -196,7 +197,7 @@ extern "C" {
             es/spanish, sv/swedish, tr/turkish.
             If left null,  or set to an unrecognized language, no language-specific behaviors
             such as stemming and stop-word removal occur. */
-        const char *language;
+        const char * C4NULLABLE language;
 
         /** Should diacritical marks (accents) be ignored? Defaults to false.
             Generally this should be left false for non-English text. */
@@ -217,7 +218,7 @@ extern "C" {
             To suppress stop-words, use an empty string.
             To provide a custom list of words, use a string containing the words in lowercase
             separated by spaces. */
-        const char *stopWords;
+        const char * C4NULLABLE stopWords;
     } C4IndexOptions;
 
 
@@ -257,31 +258,32 @@ extern "C" {
         @param indexOptions  Options for the index. If NULL, each option will get a default value.
         @param outError  On failure, will be set to the error status.
         @return  True on success, false on failure. */
-    bool c4db_createIndex(C4Database *database C4NONNULL,
+    bool c4db_createIndex(C4Database *database,
                           C4String name,
                           C4String expressionsJSON,
                           C4IndexType indexType,
-                          const C4IndexOptions *indexOptions,
-                          C4Error *outError) C4API;
+                          const C4IndexOptions * C4NULLABLE indexOptions,
+                          C4Error* C4NULLABLE outError) C4API;
 
     /** Deletes an index that was created by `c4db_createIndex`.
         @param database  The database to index.
         @param name The name of the index to delete
         @param outError  On failure, will be set to the error status.
         @return  True on success, false on failure. */
-    bool c4db_deleteIndex(C4Database *database C4NONNULL,
+    bool c4db_deleteIndex(C4Database *database,
                           C4String name,
-                          C4Error *outError) C4API;
+                          C4Error* C4NULLABLE outError) C4API;
     
     /** Returns the names of all indexes in the database.
         @param database  The database to check
         @param outError  On failure, will be set to the error status.
         @return  A Fleece-encoded array of strings, or NULL on failure. */
-    C4SliceResult c4db_getIndexes(C4Database* database C4NONNULL,
-                                  C4Error* outError) C4API;
+    C4SliceResult c4db_getIndexes(C4Database* database,
+                                  C4Error* C4NULLABLE outError) C4API;
 
     /** @} */
 
+    C4_ASSUME_NONNULL_END
 #ifdef __cplusplus
 }
 #endif

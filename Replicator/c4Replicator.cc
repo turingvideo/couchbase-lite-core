@@ -119,7 +119,7 @@ C4Replicator* c4repl_new(C4Database* db,
             if (!checkParam(otherLocalDB != db, "Can't replicate a database to itself", outError))
                 return nullptr;
             // Local-to-local:
-            c4::ref<C4Database> otherDBCopy(c4db_openAgain(otherLocalDB, outError));
+            c4::ref<C4Database> otherDBCopy(c4db_openAgain((C4Database*)otherLocalDB, outError));
             if (!otherDBCopy)
                 return nullptr;
             replicator = new C4Replicator(dbCopy, otherDBCopy, params);

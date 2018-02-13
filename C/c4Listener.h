@@ -22,6 +22,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+C4_ASSUME_NONNULL_BEGIN
 
     /** \defgroup Listener  Network Listener: REST API and Sync Server
         @{ */
@@ -58,18 +59,19 @@ extern "C" {
     C4ListenerAPIs c4listener_availableAPIs(void) C4API;
 
     /** Starts a new listener. */
-    C4Listener* c4listener_start(const C4ListenerConfig *config C4NONNULL, C4Error *error) C4API;
+    C4Listener* c4listener_start(const C4ListenerConfig *config,
+                                 C4Error* C4NULLABLE error) C4API;
 
     /** Closes and disposes a listener. */
     void c4listener_free(C4Listener *listener) C4API;
 
     /** Makes a database available from the network, under the given name. */
-    bool c4listener_shareDB(C4Listener *listener C4NONNULL,
+    bool c4listener_shareDB(C4Listener *listener,
                             C4String name,
-                            C4Database *db C4NONNULL) C4API;
+                            C4Database *db) C4API;
 
     /** Makes a previously-shared database unavailable. */
-    bool c4listener_unshareDB(C4Listener *listener C4NONNULL,
+    bool c4listener_unshareDB(C4Listener *listener,
                               C4String name) C4API;
 
 
@@ -77,6 +79,7 @@ extern "C" {
         for use in an HTTP URI path. */
     C4StringResult c4db_URINameFromPath(C4String path) C4API;
 
+C4_ASSUME_NONNULL_END
 #ifdef __cplusplus
 }
 #endif

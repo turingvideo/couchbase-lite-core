@@ -70,10 +70,7 @@ namespace litecore { namespace repl {
 
         void getChanges(const GetChangesParams&, Pusher*);
 
-        void findOrRequestRevs(Retained<blip::MessageIn> req,
-                               std::function<void(std::vector<bool>)> callback) {
-            enqueue(&DBWorker::_findOrRequestRevs, req, callback);
-        }
+        actor::Async<std::vector<bool>> findOrRequestRevs(Retained<blip::MessageIn> req);
 
         void sendRevision(RevToSend *request,
                           blip::MessageProgressCallback onProgress) {
@@ -119,8 +116,6 @@ namespace litecore { namespace repl {
         void _getChanges(GetChangesParams, Retained<Pusher> pusher);
         bool addChangeToList(const C4DocumentInfo &info, C4Document *doc,
                              std::shared_ptr<RevToSendList> &changes);
-        void _findOrRequestRevs(Retained<blip::MessageIn> req,
-                                std::function<void(std::vector<bool>)> callback);
         void _sendRevision(Retained<RevToSend> request,
                            blip::MessageProgressCallback onProgress);
         void _setCookie(alloc_slice setCookieHeader);

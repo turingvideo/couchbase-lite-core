@@ -29,6 +29,7 @@
 using namespace std;
 using namespace fleece;
 using namespace fleeceapi;
+using namespace litecore::actor;
 
 namespace litecore { namespace repl {
 
@@ -134,11 +135,13 @@ namespace litecore { namespace repl {
 
     // Actually handle a "changes" message:
     void Puller::handleChangesNow(Retained<MessageIn> req) {
-        slice reqType = req->property("Profile"_sl);
-        bool proposed = (reqType == "proposeChanges"_sl);
+        slice reqType; bool proposed = false; Array changes;
+        BEGIN_ASYNC()
+        reqType = req->property("Profile"_sl);
+        proposed = (reqType == "proposeChanges"_sl);
         logVerbose("Handling '%.*s' REQ#%llu", SPLAT(reqType), req->number());
 
-        auto changes = req->JSONBody().asArray();
+        changes = req->JSONBody().asArray();
         if (!changes && req->body() != "null"_sl) {
             warn("Invalid body of 'changes' message");
             req->respondWithError({"BLIP"_sl, 400, "Invalid JSON body"_sl});
@@ -160,36 +163,37 @@ namespace litecore { namespace repl {
             // Pass the buck to the DBWorker so it can find the missing revs & request them:
             DebugAssert(!_waitingForChangesCallback);
             _waitingForChangesCallback = true;
-            _dbActor->findOrRequestRevs(req, asynchronize([this,req,changes](vector<bool> which) {
-                // Callback, after response message sent:
-                _waitingForChangesCallback = false;
-                for (size_t i = 0; i < which.size(); ++i) {
-                    bool requesting = (which[i]);
-                    if (nonPassive()) {
-                        // Add sequence to _missingSequences:
-                        auto change = changes[(unsigned)i].asArray();
-                        alloc_slice sequence(change[0].toJSON());
-                        uint64_t bodySize = requesting ? max(change[4].asUnsigned(), (uint64_t)1) : 0;
-                        if (sequence)
-                            _missingSequences.add(sequence, bodySize);
-                        else
-                            warn("Empty/invalid sequence in 'changes' message");
-                        addProgress({0, bodySize});
-                        if (!requesting)
-                            completedSequence(sequence); // Not requesting, just update checkpoint
-                    }
-                    if (requesting) {
-                        increment(_pendingRevMessages);
-                        // now awaiting a handleRev call...
-                    }
-                }
+
+            asyncCall(vector<bool> which, _dbActor->findOrRequestRevs(req));
+            // Callback, after response message sent:
+            _waitingForChangesCallback = false;
+            for (size_t i = 0; i < which.size(); ++i) {
+                bool requesting = (which[i]);
                 if (nonPassive()) {
-                    logVerbose("Now waiting for %u 'rev' messages; %zu known sequences pending",
-                               _pendingRevMessages, _missingSequences.size());
+                    // Add sequence to _missingSequences:
+                    auto change = changes[(unsigned)i].asArray();
+                    alloc_slice sequence(change[0].toJSON());
+                    uint64_t bodySize = requesting ? max(change[4].asUnsigned(), (uint64_t)1) : 0;
+                    if (sequence)
+                        _missingSequences.add(sequence, bodySize);
+                    else
+                        warn("Empty/invalid sequence in 'changes' message");
+                    addProgress({0, bodySize});
+                    if (!requesting)
+                        completedSequence(sequence); // Not requesting, just update checkpoint
                 }
-                handleMoreChanges();  // because _waitingForChangesCallback changed
-            }));
+                if (requesting) {
+                    increment(_pendingRevMessages);
+                    // now awaiting a handleRev call...
+                }
+            }
+            if (nonPassive()) {
+                logVerbose("Now waiting for %u 'rev' messages; %zu known sequences pending",
+                           _pendingRevMessages, _missingSequences.size());
+            }
+            handleMoreChanges();  // because _waitingForChangesCallback changed
         }
+        END_ASYNC()
     }
 
 

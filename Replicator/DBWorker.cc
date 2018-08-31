@@ -40,6 +40,7 @@
 using namespace std;
 using namespace fleece;
 using namespace fleeceapi;
+using namespace litecore::actor;
 using namespace litecore::blip;
 
 namespace litecore { namespace repl {
@@ -481,8 +482,8 @@ namespace litecore { namespace repl {
 
     // Called by the Puller; handles a "changes" or "proposeChanges" message by checking which of
     // the changes don't exist locally, and returning a bit-vector indicating them.
-    void DBWorker::_findOrRequestRevs(Retained<MessageIn> req,
-                                     function<void(vector<bool>)> callback) {
+    Async<vector<bool>> DBWorker::findOrRequestRevs(Retained<MessageIn> req) {
+        BEGIN_ASYNC_RETURNING(vector<bool>)
         Signpost signpost(Signpost::get);
         // Iterate over the array in the message, seeing whether I have each revision:
         bool proposed = (req->property("Profile"_sl) == "proposeChanges"_sl);
@@ -559,12 +560,12 @@ namespace litecore { namespace repl {
         }
         encoder.endArray();
 
-        if (callback)
-            callback(whichRequested);
-
         req->respond(response);
         log("Responded to '%.*s' REQ#%llu w/request for %u revs",
             SPLAT(req->property("Profile"_sl)), req->number(), requested);
+
+        return whichRequested;
+        END_ASYNC()
     }
 
 

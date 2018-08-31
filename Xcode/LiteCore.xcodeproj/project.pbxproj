@@ -287,6 +287,7 @@
 		27BF024B1FB62726003D5BB8 /* LibC++Debug.cc in Sources */ = {isa = PBXBuildFile; fileRef = 27BF023C1FB61F5F003D5BB8 /* LibC++Debug.cc */; };
 		27BF024C1FB62727003D5BB8 /* LibC++Debug.cc in Sources */ = {isa = PBXBuildFile; fileRef = 27BF023C1FB61F5F003D5BB8 /* LibC++Debug.cc */; };
 		27C319EE1A143F5D00A89EDC /* KeyStore.cc in Sources */ = {isa = PBXBuildFile; fileRef = 27C319EC1A143F5D00A89EDC /* KeyStore.cc */; };
+		27C59BAE2135D1FB003C8492 /* ActorTest.cc in Sources */ = {isa = PBXBuildFile; fileRef = 27C59BAD2135D1FB003C8492 /* ActorTest.cc */; };
 		27CE4CF22077F51000ACA225 /* Address.cc in Sources */ = {isa = PBXBuildFile; fileRef = 27CE4CF02077F51000ACA225 /* Address.cc */; };
 		27CE4CF32077F51000ACA225 /* Address.cc in Sources */ = {isa = PBXBuildFile; fileRef = 27CE4CF02077F51000ACA225 /* Address.cc */; };
 		27CE4CFB207C1A7E00ACA225 /* Address.cc in Sources */ = {isa = PBXBuildFile; fileRef = 27CE4CF02077F51000ACA225 /* Address.cc */; };
@@ -1199,6 +1200,7 @@
 		27BF023C1FB61F5F003D5BB8 /* LibC++Debug.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "LibC++Debug.cc"; sourceTree = "<group>"; };
 		27C319EC1A143F5D00A89EDC /* KeyStore.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = KeyStore.cc; sourceTree = "<group>"; };
 		27C319ED1A143F5D00A89EDC /* KeyStore.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = KeyStore.hh; sourceTree = "<group>"; };
+		27C59BAD2135D1FB003C8492 /* ActorTest.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ActorTest.cc; sourceTree = "<group>"; };
 		27CCC7B61E525DD800CE1989 /* blip_cpp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = blip_cpp.xcodeproj; path = "BLIP-Cpp/blip_cpp.xcodeproj"; sourceTree = "<group>"; };
 		27CCC7CB1E525E6D00CE1989 /* CouchbaseLiteReplicator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CouchbaseLiteReplicator.h; path = ../Xcode/Replicator/CouchbaseLiteReplicator.h; sourceTree = "<group>"; };
 		27CCC7D61E52613C00CE1989 /* Replicator.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Replicator.cc; sourceTree = "<group>"; };
@@ -1615,6 +1617,7 @@
 				274D040A1BA75E1C00FF7C35 /* main.cpp */,
 				2750735A1F4B5ECC003D2CCE /* CMakeLists.txt */,
 				722AA64E20005F6900261887 /* TokenizerTest.cc */,
+				27C59BAD2135D1FB003C8492 /* ActorTest.cc */,
 			);
 			name = "C++ Tests";
 			path = tests;
@@ -3189,6 +3192,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				722AA64B20005E3500261887 /* ArgumentTokenizer.cc in Sources */,
+				27C59BAE2135D1FB003C8492 /* ActorTest.cc in Sources */,
 				2708FE551CF4CCCE0022F721 /* main.cpp in Sources */,
 				2708FE5B1CF4D3370022F721 /* LiteCoreTest.cc in Sources */,
 				270C6B981EBA3AD200E73415 /* LogEncoderTest.cc in Sources */,

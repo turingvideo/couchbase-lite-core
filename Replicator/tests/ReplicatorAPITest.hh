@@ -12,7 +12,6 @@
 #include "c4.hh"
 #include "CivetWebSocket.hh"
 #include "Response.hh"
-#include "make_unique.h"
 #include <iostream>
 #include "c4Test.hh"
 #include "StringUtil.hh"

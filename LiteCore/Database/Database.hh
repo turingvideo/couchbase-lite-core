@@ -27,6 +27,8 @@
 #include <memory>
 #include <mutex>
 #include <unordered_set>
+#include <filesystem>
+namespace fs = experimental::filesystem::v1;
 
 namespace fleece { namespace impl {
     class Dict;
@@ -49,14 +51,14 @@ namespace c4Internal {
     /** A top-level LiteCore database. */
     class Database : public RefCounted, public DataFile::Delegate, fleece::InstanceCountedIn<Database> {
     public:
-        Database(const string &path, C4DatabaseConfig config);
+        Database(const fs::path &path, C4DatabaseConfig config);
 
         void close();
         void deleteDatabase();
         static bool deleteDatabaseAtPath(const string &dbPath);
 
         DataFile* dataFile()                                {return _dataFile.get();}
-        FilePath path() const;
+        fs::path path() const;
         uint64_t countDocuments();
         sequence_t lastSequence()                       {return defaultKeyStore().lastSequence();}
 
@@ -131,9 +133,9 @@ namespace c4Internal {
         void mustNotBeInTransaction();
 
     private:
-        static FilePath findOrCreateBundle(const string &path, bool canCreate,
+        static fs::path findOrCreateBundle(const fs::path &path, bool canCreate,
                                            C4StorageEngine &outStorageEngine);
-        static bool deleteDatabaseFileAtPath(const string &dbPath, C4StorageEngine);
+        static bool deleteDatabaseFileAtPath(const fs::path &dbPath, C4StorageEngine);
         void _cleanupTransaction(bool committed);
         bool getUUIDIfExists(slice key, UUID&);
         UUID generateUUID(slice key, Transaction&, bool overwrite =false);
@@ -142,7 +144,7 @@ namespace c4Internal {
         std::unordered_set<std::string> collectBlobs();
         void removeUnusedBlobs(const std::unordered_set<std::string> &used);
 
-        FilePath                    _dataFilePath;          // Path of the DataFile
+        fs::path                    _dataFilePath;          // Path of the DataFile
         unique_ptr<DataFile>        _dataFile;              // Underlying DataFile
         Transaction*                _transaction {nullptr}; // Current Transaction, or null
         int                         _transactionLevel {0};  // Nesting level of transaction
@@ -204,7 +206,7 @@ namespace c4Internal {
 
 // This is the struct that's forward-declared in the public c4Database.h
 struct c4Database : public c4Internal::Database {
-    c4Database(const FilePath &path, C4DatabaseConfig config)
+    c4Database(const fs::path &path, C4DatabaseConfig config)
     :Database(path, config) { }
     
     ~c4Database();

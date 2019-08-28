@@ -133,7 +133,7 @@ namespace litecore {
 
     static void purgeOldLogs(LogLevel level)
     {
-        FilePath logDir(sLogDirectory, "");
+        fs::path logDir(sLogDirectory, "");
         if(!logDir.existsAsDir()) {
             logDir.mkdir();
             return;

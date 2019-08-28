@@ -20,6 +20,8 @@
 
 #include "DataFile.hh"
 #include "UnicodeCollator.hh"
+#include <filesystem>
+namespace fs = std::experimental::filesystem::v1;
 
 namespace SQLite {
     class Database;
@@ -37,7 +39,7 @@ namespace litecore {
     class SQLiteDataFile : public DataFile {
     public:
 
-        SQLiteDataFile(const FilePath &path, Delegate *delegate, const Options*);
+        SQLiteDataFile(const fs::path &path, Delegate *delegate, const Options*);
         ~SQLiteDataFile();
 
         bool isOpen() const noexcept override;
@@ -66,9 +68,9 @@ namespace litecore {
             virtual const char* cname() override {return "SQLite";}
             virtual std::string filenameExtension() override {return ".sqlite3";}
             virtual bool encryptionEnabled(EncryptionAlgorithm) override;
-            virtual SQLiteDataFile* openFile(const FilePath &, Delegate*, const Options* =nullptr) override;
+            virtual SQLiteDataFile* openFile(const fs::path &, Delegate*, const Options* =nullptr) override;
         protected:
-            virtual bool _deleteFile(const FilePath &path, const Options* =nullptr) override;
+            virtual bool _deleteFile(const fs::path &path, const Options* =nullptr) override;
         };
 
         static Factory& sqliteFactory();

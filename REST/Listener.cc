@@ -33,7 +33,7 @@ namespace litecore { namespace REST {
             RESTLog = c4log_getDomain("REST", true);
     }
 
-    string Listener::databaseNameFromPath(const FilePath &path) {
+    string Listener::databaseNameFromPath(const fs::path &path) {
         string name = path.fileOrDirName();
         auto split = FilePath::splitExtension(name);
         if (split.second != kC4DatabaseFilenameExtension)

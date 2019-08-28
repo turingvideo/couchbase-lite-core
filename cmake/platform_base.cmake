@@ -109,11 +109,9 @@ function(set_support_source_base)
         LiteCore/Support/c4ExceptionUtils.cc
         LiteCore/Support/EncryptedStream.cc
         LiteCore/Support/Error.cc
-        LiteCore/Support/FilePath.cc
         LiteCore/Support/LogDecoder.cc
         LiteCore/Support/LogEncoder.cc
         LiteCore/Support/Logging_Stub.cc
-        LiteCore/Support/PlatformIO.cc
         LiteCore/Support/SecureRandomize.cc
         LiteCore/Support/SecureSymmetricCrypto.cc
         LiteCore/Support/StringUtil.cc

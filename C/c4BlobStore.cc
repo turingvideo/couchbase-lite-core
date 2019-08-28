@@ -20,12 +20,14 @@
 #include "c4BlobStore.h"
 #include "BlobStore.hh"
 #include "Database.hh"
+#include <filesystem>
+namespace fs = std::experimental::filesystem::v1;
 
 
 // This is a no-op class that just serves to make c4BlobStore type-compatible with BlobStore.
 struct c4BlobStore : public BlobStore {
 public:
-    c4BlobStore(const FilePath &dirPath, const Options *options)
+    c4BlobStore(const fs::path &dirPath, const Options *options)
     :BlobStore(dirPath, options)
     { }
 };
@@ -72,7 +74,7 @@ C4BlobStore* c4blob_openStore(C4Slice dirPath,
             options.encryptionAlgorithm = (EncryptionAlgorithm)key->algorithm;
             options.encryptionKey = alloc_slice(key->bytes, sizeof(key->bytes));
         }
-        return new c4BlobStore(FilePath(toString(dirPath)), &options);
+        return new c4BlobStore(fs::path(toString(dirPath)), &options);
     } catchError(outError)
     return nullptr;
 }
@@ -120,14 +122,14 @@ C4SliceResult c4blob_getContents(C4BlobStore* store, C4BlobKey key, C4Error* out
 C4StringResult c4blob_getFilePath(C4BlobStore* store, C4BlobKey key, C4Error* outError) noexcept {
     try {
         auto path = store->get(asInternal(key)).path();
-        if (!path.exists()) {
+        if (fs::exists(path)) {
             recordError(LiteCoreDomain, kC4ErrorNotFound, outError);
             return {nullptr, 0};
         } else if (store->isEncrypted()) {
             recordError(LiteCoreDomain, kC4ErrorWrongFormat, outError);
             return {nullptr, 0};
         }
-        return sliceResult((string)path);
+        return sliceResult(path.generic_string());
     } catchError(outError)
     return {nullptr, 0};
 }

@@ -149,12 +149,12 @@ namespace litecore {
     }
 
 
-    SQLiteDataFile* SQLiteDataFile::Factory::openFile(const FilePath &path, Delegate *delegate, const Options *options) {
+    SQLiteDataFile* SQLiteDataFile::Factory::openFile(const fs::path &path, Delegate *delegate, const Options *options) {
         return new SQLiteDataFile(path, delegate, options);
     }
 
 
-    bool SQLiteDataFile::Factory::_deleteFile(const FilePath &path, const Options*) {
+    bool SQLiteDataFile::Factory::_deleteFile(const fs::path &path, const Options*) {
         LogTo(DBLog, "Deleting database file %s (with -wal and -shm)", path.path().c_str());
         bool ok =  path.del() | path.appendingToName("-shm").del() | path.appendingToName("-wal").del();
         // Note the non-short-circuiting 'or'! All 3 paths will be deleted.
@@ -164,7 +164,7 @@ namespace litecore {
     }
 
 
-    SQLiteDataFile::SQLiteDataFile(const FilePath &path, Delegate *delegate, const Options *options)
+    SQLiteDataFile::SQLiteDataFile(const fs::path &path, Delegate *delegate, const Options *options)
     :DataFile(path, delegate, options)
     {
         reopen();

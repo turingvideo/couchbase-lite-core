@@ -55,7 +55,7 @@ N_WAY_TEST_CASE_METHOD (DataFileTestFixture, "DbInfo", "[DataFile]") {
 N_WAY_TEST_CASE_METHOD (DataFileTestFixture, "Delete DB", "[DataFile]") {
     auto path = db->filePath();
     deleteDatabase();
-    path.forEachMatch([](const FilePath &file) {
+    path.forEachMatch([](const fs::path &file) {
         FAIL("Leftover file(s) '" << file.path() << "' after deleting database");
     });
 }
@@ -445,7 +445,7 @@ TEST_CASE("CanonicalPath") {
 #endif
 #endif
 
-    FilePath path(startPath);
+    fs::path path(startPath);
     CHECK(path.canonicalPath() == endPath);
 
 #ifdef _MSC_VER

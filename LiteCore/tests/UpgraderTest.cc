@@ -33,7 +33,7 @@ protected:
     Retained<Database> db;
 
     void upgrade(string oldPath) {
-        FilePath newPath = FilePath::tempDirectory()["upgraded.cblite2/"];
+        fs::path newPath = FilePath::tempDirectory()["upgraded.cblite2/"];
         newPath.delRecursive();
 
         C4DatabaseConfig config { };
@@ -48,7 +48,7 @@ protected:
 
     void upgradeInPlace(string fixturePath) {
         auto srcPath = FilePath(fixturePath);
-        FilePath dbPath = FilePath::tempDirectory()[srcPath.fileOrDirName() + "/"];
+        fs::path dbPath = FilePath::tempDirectory()[srcPath.fileOrDirName() + "/"];
         dbPath.delRecursive();
         srcPath.copyTo(dbPath);
 

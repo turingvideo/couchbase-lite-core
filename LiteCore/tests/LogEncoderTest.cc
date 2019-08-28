@@ -198,7 +198,7 @@ TEST_CASE("LogEncoder auto-flush", "[Log]") {
 }
 
 TEST_CASE("Logging rollover", "[Log]") {
-    FilePath tmpLogDir = FilePath::tempDirectory()["Log_Rollover/"];
+    fs::path tmpLogDir = FilePath::tempDirectory()["Log_Rollover/"];
     tmpLogDir.delRecursive();
     tmpLogDir.mkdir();
     tmpLogDir["intheway"].mkdir();
@@ -224,14 +224,14 @@ TEST_CASE("Logging rollover", "[Log]") {
 
     // HACK: Cause a flush so that the test has something in the second log
     // to actually read into the decoder
-    FilePath other = FilePath::tempDirectory()["Log_Rollover2/"];
+    fs::path other = FilePath::tempDirectory()["Log_Rollover2/"];
     other.mkdir();
     LogFileOptions fileOptions2 { other.canonicalPath(), LogLevel::Info, 1024, 2, false };
     LogDomain::writeEncodedLogsTo(fileOptions2, "Hello");
     
     vector<string> infoFiles;
     int totalCount = 0;
-    tmpLogDir.forEachFile([&infoFiles, &totalCount](const FilePath f)
+    tmpLogDir.forEachFile([&infoFiles, &totalCount](const fs::path f)
     {
        totalCount++;
        if(f.path().find("info") != string::npos) {
@@ -254,7 +254,7 @@ TEST_CASE("Logging rollover", "[Log]") {
 }
 
 TEST_CASE("Logging plaintext", "[Log]") {
-    FilePath tmpLogDir = FilePath::tempDirectory()["Log_Plaintext/"];
+    fs::path tmpLogDir = FilePath::tempDirectory()["Log_Plaintext/"];
     tmpLogDir.delRecursive();
     tmpLogDir.mkdir();
 
@@ -264,7 +264,7 @@ TEST_CASE("Logging plaintext", "[Log]") {
     obj.doLog("This will be in plaintext");
 
     vector<string> infoFiles;
-    tmpLogDir.forEachFile([&infoFiles](const FilePath f)
+    tmpLogDir.forEachFile([&infoFiles](const fs::path f)
     {
        if(f.path().find("info") != string::npos) {
            infoFiles.push_back(f.path());

@@ -37,16 +37,16 @@ namespace litecore {
     }
 
     
-    static void checkErr(FILE *file) {
-        int err = ferror(file);
-        if (_usuallyFalse(err != 0))
-            error::_throw(error::POSIX, err);
+    static void checkErr(fstream *file) {
+        if (_usuallyFalse(file->fail()))
+            error::_throwErrno();
     }
 
 
-    FileReadStream::FileReadStream(const FilePath &path, const char *mode) {
-        _file = fopen_u8(path.path().c_str(), mode);
-        if (!_file)
+    FileReadStream::FileReadStream(const fs::path &path, std::ios_base::openmode mode) {
+        _file = new fstream();
+        _file->open(path, mode);
+        if (_file->fail())
             error::_throwErrno();
     }
 
@@ -54,15 +54,20 @@ namespace litecore {
     void FileReadStream::close() {
         auto file = _file;
         _file = nullptr;
-        if (file && fclose(file) != 0)
-            error::_throwErrno();
+        if (file) {
+            file->close();
+            if(file->fail()) {
+                error::_throwErrno();
+            }
+        }
     }
 
 
     FileReadStream::~FileReadStream() {
         if (_file) {
             // Destructor cannot throw exceptions, so just warn if there was an error:
-            if (fclose(_file) < 0)
+            _file->close();
+            if (_file->fail())
                 Warn("FileStream destructor: fclose got error %d", errno);
         }
     }
@@ -73,10 +78,10 @@ namespace litecore {
 			return 0;
 		}
 
-        uint64_t curPos = ftello(_file);
-        fseeko(_file, 0, SEEK_END);
-        uint64_t fileSize = ftello(_file);
-        fseeko(_file, curPos, SEEK_SET);
+        uint64_t curPos = _file->tellg();
+        _file->seekg(0, _file->end);
+        uint64_t fileSize = _file->tellg();
+        _file->seekg(curPos, _file->beg);
         checkErr(_file);
         return fileSize;
     }
@@ -87,7 +92,7 @@ namespace litecore {
 			return;
 		}
 
-        fseeko(_file, pos, SEEK_SET);
+        _file->seekg(pos, _file->cur);
         checkErr(_file);
     }
 
@@ -97,17 +102,21 @@ namespace litecore {
 			return 0;
 		}
 
-        size_t bytesRead = fread(dst, 1, count, _file);
+        uint64_t curPos = _file->tellg();
+        _file->read((char*)dst, count);
         checkErr(_file);
-        return bytesRead;
+        return (uint64_t)_file->tellg() - curPos;
     }
 
 
 
     void FileWriteStream::write(slice data) {
 		if(_file) {
-			if (fwrite(data.buf, 1, data.size, _file) < data.size)
-				checkErr(_file);
+            uint64_t curPos = _file->tellg();
+            _file->write((const char*)data.buf, data.size);
+            if(((uint64_t)_file->tellg() - curPos) < data.size) {
+                checkErr(_file);
+            }
 		}
     }
 

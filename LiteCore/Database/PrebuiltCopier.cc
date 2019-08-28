@@ -28,35 +28,36 @@
 namespace litecore {
     using namespace std;
     
-    void CopyPrebuiltDB(const litecore::FilePath &from, const litecore::FilePath &to,
+    void CopyPrebuiltDB(const fs::path &from, const fs::path &to,
                              const C4DatabaseConfig *config) {
-        if(!from.exists()) {
-            Warn("No database exists at %s, cannot copy!", from.path().c_str());
+        if(!fs::exists(from)) {
+            Warn("No database exists at %s, cannot copy!", from.c_str());
             error::_throw(error::Domain::LiteCore, kC4ErrorNotFound);
         }
 
-        if (to.exists()) {
-            Warn("Database already exists at %s, cannot copy!", to.path().c_str());
+        if (fs::exists(to)) {
+            Warn("Database already exists at %s, cannot copy!", to.c_str());
             error::_throw(error::Domain::POSIX, EEXIST);
         }
         
-        FilePath backupPath;
-        Log("Copying prebuilt database from %s to %s", from.path().c_str(), to.path().c_str());
+        fs::path backupPath;
+        Log("Copying prebuilt database from %s to %s", from.c_str(), to.c_str());
+
+        char dir_buffer[] = "XXXXXX";
+        fs::path temp = fs::temp_directory_path() / temp_filename(dir_buffer);
+        fs::remove_all(temp);
+        fs::copy(from, temp);
         
-        FilePath temp = FilePath::tempDirectory(to.parentDir()).mkTempDir();
-        temp.delRecursive();
-        from.copyTo(temp);
-        
-        auto db = make_unique<C4Database>(temp.path(), *config);
+        auto db = make_unique<C4Database>(temp, *config);
         db->resetUUIDs();
         db->close();
         
         try {
             Log("Moving source DB to destination DB...");
-            temp.moveTo(to);
+            fs::rename(temp, to);
         } catch(...) {
             Warn("Failed to finish copying database");
-            to.delRecursive();
+            fs::remove_all(to);
             throw;
         }
     }

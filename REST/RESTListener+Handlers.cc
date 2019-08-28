@@ -108,7 +108,7 @@ namespace litecore { namespace REST {
         string dbName = rq.path(0);
         if (databaseNamed(dbName))
             return rq.respondWithStatus(HTTPStatus::PreconditionFailed, "Database exists");
-        FilePath path;
+        fs::path path;
         if (!pathFromDatabaseName(dbName, path))
             return rq.respondWithStatus(HTTPStatus::BadRequest, "Invalid database name");
 

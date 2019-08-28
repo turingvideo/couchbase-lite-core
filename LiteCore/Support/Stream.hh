@@ -20,7 +20,9 @@
 #include "Base.hh"
 #include "FilePath.hh"
 #include <stdio.h>
-
+#include <filesystem>
+#include <fstream>
+namespace fs = std::experimental::filesystem::v1;
 
 namespace litecore {
 
@@ -63,8 +65,8 @@ namespace litecore {
     /** Concrete ReadStream that reads a file. */
     class FileReadStream : public virtual SeekableReadStream {
     public:
-        FileReadStream(const FilePath& path)        :FileReadStream(path, "rb") {}
-        FileReadStream(FILE *file NONNULL)          :_file(file) { }
+        FileReadStream(const fs::path& path)        :FileReadStream(path, std::ios_base::in|std::ios_base::binary) {}
+        FileReadStream(std::fstream *file NONNULL)          :_file(file) { }
         virtual ~FileReadStream();
 
         virtual uint64_t getLength() const override;
@@ -73,9 +75,8 @@ namespace litecore {
         virtual void close() override;
 
     protected:
-        FileReadStream(const FilePath &path, const char *mode NONNULL);
-
-        FILE* _file {nullptr};
+        FileReadStream(const fs::path &path, std::ios_base::openmode mode);
+        std::fstream* _file {nullptr};
     };
 
 #ifdef _MSC_VER
@@ -85,8 +86,7 @@ namespace litecore {
     /** Concrete WriteStream that writes to a file. (It can also read.) */
     class FileWriteStream : public virtual FileReadStream, public virtual ReadWriteStream {
     public:
-        FileWriteStream(const FilePath& path, const char *mode NONNULL) :FileReadStream(path, mode) {}
-        FileWriteStream(FILE *file NONNULL)                             :FileReadStream(file) {}
+        FileWriteStream(const fs::path& path, std::ios_base::openmode mode) :FileReadStream(path, mode) {}
 
         virtual void write(slice) override;
         virtual void close() override                           {FileReadStream::close();}

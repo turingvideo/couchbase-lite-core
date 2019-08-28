@@ -32,6 +32,7 @@
 #include <deque>
 #include <mutex>
 #include <set>
+#include <filesystem>
 
 #ifdef _MSC_VER
 #include <winerror.h>
@@ -432,7 +433,6 @@ void c4_dumpInstances(void) C4API {
 
 void c4_setTempDir(C4String path) C4API {
     auto pathStr = slice(path).asString();
-    FilePath::setTempDirectory(pathStr);
 
     // Tell SQLite to use this temp directory. Note that the dup'd string will be leaked.
     sqlite3_temp_directory = cbl_strdup(pathStr.c_str());

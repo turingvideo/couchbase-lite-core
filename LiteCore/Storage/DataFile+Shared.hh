@@ -14,6 +14,8 @@
 #include <condition_variable> // std::condition_variable
 #include <unordered_map>
 #include <algorithm>
+#include <filesystem>
+namespace fs = std::experimental::filesystem::v1;
 
 namespace litecore {
 
@@ -26,8 +28,8 @@ namespace litecore {
     class DataFile::Shared : public RefCounted, fleece::InstanceCountedIn<RefCounted>, Logging {
     public:
 
-        static Shared* forPath(const FilePath &path, DataFile *dataFile) {
-            string pathStr = path.canonicalPath();
+        static Shared* forPath(const fs::path &path, DataFile *dataFile) {
+            fs::path pathStr = fs::canonical(path);
             unique_lock<mutex> lock(sFileMapMutex);
             Shared* file = sFileMap[pathStr];
             if (!file) {
@@ -45,8 +47,8 @@ namespace litecore {
         }
 
 
-        static size_t openCountOnPath(const FilePath &path) {
-            string pathStr = path.canonicalPath();
+        static size_t openCountOnPath(const fs::path &path) {
+            fs::path pathStr = fs::canonical(path);
 
             unique_lock<mutex> lock(sFileMapMutex);
             Shared* file = sFileMap[pathStr];
@@ -54,7 +56,7 @@ namespace litecore {
         }
 
 
-        const string path;                              // The filesystem path
+        const fs::path path;                              // The filesystem path
 
 
         Transaction* transaction() {
@@ -141,7 +143,7 @@ namespace litecore {
 
 
     protected:
-        Shared(const string &p)
+        Shared(const fs::path &p)
         :Logging(DBLog)
         ,path(p)
         {
@@ -169,7 +171,7 @@ namespace litecore {
         bool               _condemned {false};      // Prevents db from being opened or deleted
         mutex              _mutex;                  // Mutex for non-transaction state
 
-        static unordered_map<string, Shared*> sFileMap;
+        static unordered_map<fs::path, Shared*> sFileMap;
         static mutex sFileMapMutex;
     };
 

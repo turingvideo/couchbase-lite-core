@@ -17,11 +17,12 @@
 //
 
 #pragma once
+#include <filesystem>
+namespace fs = std::experimental::filesystem::v1;
 
 struct C4DatabaseConfig;
 
 namespace litecore {
-    class FilePath;
     
-    void CopyPrebuiltDB(const FilePath& from, const FilePath& to, const C4DatabaseConfig*);
+    void CopyPrebuiltDB(const fs::path& from, const fs::path& to, const C4DatabaseConfig*);
 }

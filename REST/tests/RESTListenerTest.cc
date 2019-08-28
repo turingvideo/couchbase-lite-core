@@ -44,7 +44,7 @@ public:
 
 
     void setUpDirectory() {
-        litecore::FilePath tempDir(TempDir() + "rest/");
+        litecore::fs::path tempDir(TempDir() + "rest/");
         tempDir.delRecursive();
         tempDir.mkdir();
         directory = alloc_slice(tempDir.path().c_str());

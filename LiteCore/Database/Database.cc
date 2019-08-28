@@ -56,14 +56,14 @@ namespace c4Internal {
 
 
     // `path` is path to bundle; return value is path to db file. Updates config.storageEngine. */
-    /*static*/ FilePath Database::findOrCreateBundle(const string &path,
+    /*static*/ fs::path Database::findOrCreateBundle(const fs::path &path,
                                                      bool canCreate,
                                                      C4StorageEngine &storageEngine)
     {
-        FilePath bundle(path, "");
-        bool createdDir = (canCreate && bundle.mkdir());
-        if (!createdDir)
-            bundle.mustExistAsDir();
+        bool createdDir = (canCreate && fs::create_directory(path));
+        if (!createdDir && !fs::is_directory(path)) {
+            error::_throw(error::POSIX, ENOTDIR);
+        }
 
         DataFile::Factory *factory = DataFile::factoryNamed(storageEngine);
         if (!factory)
@@ -71,7 +71,7 @@ namespace c4Internal {
 
         // Look for the file corresponding to the requested storage engine (defaulting to SQLite):
 
-        FilePath dbPath = bundle["db"].withExtension(factory->filenameExtension());
+        fs::path dbPath = path / (string("db") + factory->filenameExtension());
         if (createdDir || factory->fileExists(dbPath)) {
             // Db exists in expected format, or else we just created this blank bundle dir, so exit:
             if (storageEngine == nullptr)
@@ -87,7 +87,7 @@ namespace c4Internal {
         // Not found, but they didn't specify a format, so try the other formats:
         for (auto otherFactory : DataFile::factories()) {
             if (otherFactory != factory) {
-                dbPath = bundle["db"].withExtension(otherFactory->filenameExtension());
+                dbPath = path / (string("db") + otherFactory->filenameExtension());
                 if (factory->fileExists(dbPath)) {
                     storageEngine = factory->cname();
                     return dbPath;
@@ -100,7 +100,7 @@ namespace c4Internal {
     }
 
 
-    Database::Database(const string &bundlePath,
+    Database::Database(const fs::path &bundlePath,
                        C4DatabaseConfig inConfig)
     :_dataFilePath(findOrCreateBundle(bundlePath,
                                       (inConfig.flags & kC4DB_Create) != 0,
@@ -135,7 +135,7 @@ namespace c4Internal {
             _dataFile.reset( storageFactory->openFile(_dataFilePath, this, &options) );
         } catch (const error &x) {
             if (x.domain == error::LiteCore && x.code == error::DatabaseTooOld
-                    && UpgradeDatabaseInPlace(_dataFilePath.dir(), config)) {
+                    && UpgradeDatabaseInPlace(_dataFilePath.remove_filename(), config)) {
                 // This is an old 1.x database; upgrade it in place, then open:
                 _dataFile.reset( storageFactory->openFile(_dataFilePath, this, &options) );
             } else {
@@ -205,16 +205,16 @@ namespace c4Internal {
     void Database::deleteDatabase() {
         mustNotBeInTransaction();
         closeBackgroundDatabase();
-        FilePath bundle = path().dir();
+        fs::path bundle = path().remove_filename();
         _dataFile->deleteDataFile();
-        bundle.delRecursive();
+        fs::remove_all(bundle);
     }
 
 
     /*static*/ bool Database::deleteDatabaseAtPath(const string &dbPath) {
         // Find the db file in the bundle:
-        FilePath bundle {dbPath, ""};
-        if (bundle.exists()) {
+        fs::path bundle(dbPath);
+        if (fs::exists(bundle)) {
             try {
                 C4StorageEngine storageEngine = nullptr;
                 auto dbFilePath = findOrCreateBundle(dbPath, false, storageEngine);
@@ -226,12 +226,12 @@ namespace c4Internal {
             }
         }
         // Delete the rest of the bundle:
-        return bundle.delRecursive();
+        return fs::remove_all(bundle);
     }
 
-    bool Database::deleteDatabaseFileAtPath(const string &dbPath,
+    bool Database::deleteDatabaseFileAtPath(const fs::path &dbPath,
                                             C4StorageEngine storageEngine) {
-        FilePath path(dbPath);
+        fs::path path(dbPath);
         DataFile::Factory *factory = nullptr;
         if (storageEngine) {
             factory = DataFile::factoryNamed(storageEngine);
@@ -308,7 +308,7 @@ namespace c4Internal {
 
         // Create a new BlobStore and copy/rekey the blobs into it:
         BlobStore *realBlobStore = blobStore();
-        path().subdirectoryNamed("Attachments_temp").delRecursive();
+        fs::remove_all(path() / "Attachments_temp");
         auto newStore = createBlobStore("Attachments_temp", *newKey);
         try {
             realBlobStore->copyBlobsTo(*newStore);
@@ -343,8 +343,8 @@ namespace c4Internal {
     }
 
 
-    FilePath Database::path() const {
-        return _dataFile->filePath().dir();
+    fs::path Database::path() const {
+        return _dataFile->filePath().remove_filename();
     }
 
 
@@ -392,7 +392,7 @@ namespace c4Internal {
     unique_ptr<BlobStore> Database::createBlobStore(const string &dirname,
                                                     C4EncryptionKey encryptionKey) const
     {
-        FilePath blobStorePath = path().subdirectoryNamed(dirname);
+        fs::path blobStorePath = path() / dirname;
         auto options = BlobStore::Options::defaults;
         options.create = options.writeable = (config.flags & kC4DB_ReadOnly) == 0;
         options.encryptionAlgorithm =(EncryptionAlgorithm)encryptionKey.algorithm;

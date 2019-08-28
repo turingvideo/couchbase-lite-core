@@ -110,23 +110,21 @@ namespace litecore {
     
     
     Blob::Blob(const BlobStore &store, const blobKey &key)
-    :_path(store.dir(), key.filename()),
+    :_path(store.dir() / key.filename()),
      _key(key),
      _store(store)
     { }
 
 
     int64_t Blob::contentLength() const {
-        int64_t length = path().dataSize();
+        int64_t length = file_size(path());
         if (length >= 0 && _store.options().encryptionAlgorithm != kNoEncryption)
             length -= EncryptedReadStream::kFileSizeOverhead;
         return length;
     }
 
-
-
     unique_ptr<SeekableReadStream> Blob::read() const {
-        SeekableReadStream *reader = new FileReadStream(_path);
+        SeekableReadStream* reader = new FileReadStream(_path);
         auto &options = _store.options();
         if (options.encryptionAlgorithm != kNoEncryption) {
             reader = new EncryptedReadStream(shared_ptr<SeekableReadStream>(reader),
@@ -143,9 +141,9 @@ namespace litecore {
     BlobWriteStream::BlobWriteStream(BlobStore &store)
     :_store(store)
     {
-        FILE *file;
-        _tmpPath = store.dir()["incoming_"].mkTempFile(&file);
-        _writer = shared_ptr<WriteStream> {new FileWriteStream(file)};
+        char filename_buffer[] = "incoming_XXXXXX";
+        _tmpPath = store.dir() / temp_filename(filename_buffer);
+        _writer = shared_ptr<WriteStream> {new FileWriteStream(_tmpPath.generic_string(), ios_base::in|ios_base::out|ios_base::binary)};
         auto &options = _store.options();
         if (options.encryptionAlgorithm != kNoEncryption) {
             _writer = make_shared<EncryptedWriteStream>(_writer,
@@ -159,11 +157,11 @@ namespace litecore {
     BlobWriteStream::~BlobWriteStream() {
         if (!_installed) {
             try {
-                _tmpPath.del();
+                fs::remove(_tmpPath);
             } catch (...) {
                 // destructor is not allowed to throw exceptions
                 Warn("BlobWriteStream: unable to delete temporary file %s",
-                     _tmpPath.path().c_str());
+                     _tmpPath.c_str());
             }
         }
     }
@@ -198,8 +196,8 @@ namespace litecore {
         if (expectedKey && *expectedKey != key)
             error::_throw(error::CorruptData);
         Blob blob(_store, key);
-        _tmpPath.setReadOnly(true);
-        _tmpPath.moveTo(blob.path());
+        fs::permissions(_tmpPath, fs::perms::owner_read);
+        fs::rename(_tmpPath, blob.path());
         _installed = true;
         return blob;
     }
@@ -207,11 +205,11 @@ namespace litecore {
 #pragma mark - DELETING:
     
     void BlobStore::deleteAllExcept(const unordered_set<string> &inUse) {
-        _dir.forEachFile([&inUse](const FilePath &path) {
-            if(find(inUse.cbegin(), inUse.cend(), path.fileName()) == inUse.cend()) {
-                path.del();
+        for(auto& p : fs::directory_iterator(_dir)) {
+            if(find(inUse.cbegin(), inUse.cend(), p.path().filename()) == inUse.cend()) {
+                fs::remove(p.path());
             }
-        });
+        }
     }
 
 
@@ -221,16 +219,18 @@ namespace litecore {
     const BlobStore::Options BlobStore::Options::defaults = {true, true};
 
 
-    BlobStore::BlobStore(const FilePath &dir, const Options *options)
+    BlobStore::BlobStore(const fs::path &dir, const Options *options)
     :_dir(dir),
      _options(options ? *options : Options::defaults)
     {
-        if (_dir.exists()) {
-            _dir.mustExistAsDir();
+        if (fs::exists(_dir)) {
+            if(!fs::is_directory(_dir)) {
+                error::_throw(error::POSIX, ENOTDIR);
+            }
         } else {
             if (!_options.create)
                 error::_throw(error::NotFound);
-            _dir.mkdir();
+            fs::create_directory(_dir);
         }
     }
 
@@ -243,9 +243,13 @@ namespace litecore {
 
 
     void BlobStore::copyBlobsTo(BlobStore &toStore) {
-        _dir.forEachFile([&](const FilePath &path) {
+        for(auto& p : fs::directory_iterator(_dir)) {
+            if(!fs::is_regular_file(p.path())) {
+                continue;
+            }
+
             blobKey key;
-            if (!key.readFromFilename(path.fileName()))
+            if (!key.readFromFilename(p.path().filename().generic_string()))
                 return;
             Blob srcBlob(*this, key);
             auto src = srcBlob.read();
@@ -256,12 +260,12 @@ namespace litecore {
                 dst.write(slice(buffer, bytesRead));
             }
             dst.install(&key);
-        });
+        }
     }
 
 
     void BlobStore::moveTo(BlobStore &toStore) {
-        _dir.moveToReplacingDir(toStore.dir(), true);
+        fs::rename(_dir, toStore.dir());
         toStore._options = _options;
     }
 

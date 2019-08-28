@@ -203,18 +203,18 @@ DataFile::Factory& DataFileTestFixture::factory() {
 }
 
 
-FilePath DataFileTestFixture::databasePath(const string baseName) {
+fs::path DataFileTestFixture::databasePath(const string baseName) {
     auto path = FilePath::tempDirectory()[baseName];
     return path.addingExtension(factory().filenameExtension());
 }
 
 
-/*static*/ void DataFileTestFixture::deleteDatabase(const FilePath &dbPath) {
+/*static*/ void DataFileTestFixture::deleteDatabase(const fs::path &dbPath) {
     auto factory = DataFile::factoryForFile(dbPath);
     factory->deleteFile(dbPath);
 }
 
-DataFile* DataFileTestFixture::newDatabase(const FilePath &path, const DataFile::Options *options) {
+DataFile* DataFileTestFixture::newDatabase(const fs::path &path, const DataFile::Options *options) {
     //TODO: Set up options
     return factory().openFile(path, this, options);
 }

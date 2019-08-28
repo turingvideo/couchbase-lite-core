@@ -46,23 +46,24 @@ namespace litecore {
 
     LogDomain DBLog("DB");
 
-    unordered_map<string, DataFile::Shared*> DataFile::Shared::sFileMap;
+    unordered_map<fs::path, DataFile::Shared*> DataFile::Shared::sFileMap;
     mutex DataFile::Shared::sFileMapMutex;
 
 
 #pragma mark - FACTORY:
 
 
-    void DataFile::Factory::moveFile(const FilePath &from, const FilePath &to) {
-        auto fromBaseLen = from.fileName().size();
-        from.forEachMatch([&](const FilePath &f) {
-            string toFile = to.fileName() + from.fileName().substr(fromBaseLen);
-            f.moveTo(to.dirName() + toFile);
-        });
+    void DataFile::Factory::moveFile(const fs::path &from, const fs::path &to) {
+        auto fromBaseLen = from.filename().generic_string().size();
+        for(auto& p : fs::directory_iterator(from)) {
+            fs::path toFile = to.filename();
+            toFile += from.filename().generic_string().substr(fromBaseLen);
+            fs::rename(p.path(), to);
+        }
     }
 
-    bool DataFile::Factory::fileExists(const FilePath &path) {
-        return path.exists();
+    bool DataFile::Factory::fileExists(const fs::path &path) {
+        return fs::exists(path);
     }
 
 
@@ -87,7 +88,7 @@ namespace litecore {
         return factoryNamed(string(name));
     }
 
-    DataFile::Factory* DataFile::factoryForFile(const FilePath &path) {
+    DataFile::Factory* DataFile::factoryForFile(const fs::path &path) {
         auto ext = path.extension();
         for (auto factory : factories())
             if (ext == factory->filenameExtension())
@@ -105,7 +106,7 @@ namespace litecore {
     };
 
 
-    DataFile::DataFile(const FilePath &path, Delegate *delegate, const DataFile::Options *options)
+    DataFile::DataFile(const fs::path &path, Delegate *delegate, const DataFile::Options *options)
     :Logging(DBLog)
     ,_delegate(delegate)
     ,_path(path)
@@ -125,7 +126,7 @@ namespace litecore {
 
 
     string DataFile::loggingIdentifier() const {
-        return _path.path();
+        return _path.generic_string();
     }
 
 
@@ -198,7 +199,7 @@ namespace litecore {
         deleteDataFile(this, nullptr, _shared, factory());
     }
 
-    bool DataFile::Factory::deleteFile(const FilePath &path, const Options *options) {
+    bool DataFile::Factory::deleteFile(const fs::path &path, const Options *options) {
         Retained<Shared> shared = Shared::forPath(path, nullptr);
         return DataFile::deleteDataFile(nullptr, options, shared, *this);
     }

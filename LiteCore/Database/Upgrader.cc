@@ -43,16 +43,16 @@ namespace litecore {
 
     class Upgrader {
     public:
-        Upgrader(const FilePath &oldPath, const FilePath &newPath, C4DatabaseConfig config)
-        :Upgrader(oldPath, new Database(newPath.path(), config))
+        Upgrader(const fs::path &oldPath, const fs::path &newPath, C4DatabaseConfig config)
+        :Upgrader(oldPath, new Database(newPath.generic_string(), config))
         { }
 
 
-        Upgrader(const FilePath &oldPath, Database *newDB)
+        Upgrader(const fs::path &oldPath, Database *newDB)
         :_oldPath(oldPath)
-        ,_oldDB(oldPath["db.sqlite3"].path(), SQLite::OPEN_READWRITE) // *
+        ,_oldDB((oldPath / "db.sqlite3").generic_string(), SQLite::OPEN_READWRITE) // *
         ,_newDB(newDB)
-        ,_attachments(oldPath["attachments/"])
+        ,_attachments(oldPath / "attachments/")
         {
             // * Note: It would be preferable to open the old db read-only, but that will fail
             // unless its '-shm' file already exists. <https://www.sqlite.org/wal.html#readonly>
@@ -66,7 +66,7 @@ namespace litecore {
         void run() {
             int userVersion = _oldDB.execAndGet("PRAGMA user_version");
             Log("Upgrading CBL 1.x database <%s>, user_version=%d)",
-                _oldPath.path().c_str(), userVersion);
+                _oldPath.c_str(), userVersion);
             if (userVersion < kMinOldUserVersion)
                 error::_throw(error::DatabaseTooOld);
             else if (userVersion > kMaxOldUserVersion)
@@ -245,8 +245,8 @@ namespace litecore {
             string hex = key.hexString();
             for (char &c : hex)
                 c = (char)toupper(c);
-            FilePath src = _attachments[hex + ".blob"];
-            if (!src.exists())
+            fs::path src = _attachments / (hex + ".blob");
+            if (fs::exists(src))
                 return false;
 
             //OPT: Could move the attachment file instead of copying (to save disk space)
@@ -282,39 +282,39 @@ namespace litecore {
         }
 #endif
 
-        FilePath _oldPath;
+        fs::path _oldPath;
         SQLite::Database _oldDB;
         Retained<Database> _newDB;
-        FilePath _attachments;
+        fs::path _attachments;
         unique_ptr<SQLite::Statement> _currentRev, _parentRevs;
     };
 
 
-    void UpgradeDatabase(const FilePath &oldPath, const FilePath &newPath, C4DatabaseConfig cfg) {
+    void UpgradeDatabase(const fs::path &oldPath, const fs::path &newPath, C4DatabaseConfig cfg) {
         Upgrader(oldPath, newPath, cfg).run();
     }
 
 
-    bool UpgradeDatabaseInPlace(const FilePath &path, C4DatabaseConfig config) {
+    bool UpgradeDatabaseInPlace(const fs::path &path, C4DatabaseConfig config) {
         if (config.flags & (kC4DB_NoUpgrade | kC4DB_ReadOnly)) return false;
 
-        string p = path.path();
+        string p = path.generic_string();
         chomp(p, '/');
         chomp(p, '\\');
-        FilePath newTempPath(p + "_TEMP/");
+        fs::path newTempPath(p + "_TEMP/");
 
         try {
             // Upgrade to a new db:
             auto newConfig = config;
             newConfig.flags |= kC4DB_Create;
             Log("Upgrader upgrading db <%s>; creating new db at <%s>",
-                path.path().c_str(), newTempPath.path().c_str());
+                path.c_str(), newTempPath.c_str());
             UpgradeDatabase(path, newTempPath, newConfig);
 
             // Move the new db to the real path:
-            newTempPath.moveToReplacingDir(path, true);
+            fs::rename(newTempPath, path);
         } catch (...) {
-            newTempPath.delRecursive();
+            fs::remove_all(newTempPath);
             throw;
         }
         

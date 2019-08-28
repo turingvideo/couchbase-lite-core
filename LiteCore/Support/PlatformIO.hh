@@ -25,11 +25,13 @@
     #include <cstdio>
     #include "asprintf.h"
 
-    #define fdopen      ::_fdopen
-    #define fseeko      fseek
-    #define ftello      ftell
     #define strncasecmp _strnicmp
     #define strcasecmp  _stricmp
+
+    /*#define fdopen      ::_fdopen
+    #define fseeko      fseek
+    #define ftello      ftell
+    
     #define fdclose ::_close
 
     #define R_OK 1
@@ -47,7 +49,7 @@
         int chmod_u8(const char* const filename, int mode);
         int access_u8(const char* const path, int mode);
         FILE* fopen_u8(const char* const path, const char* const mode);
-    }
+    }*/
 
 #else
 

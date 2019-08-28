@@ -27,9 +27,11 @@
 #include <unordered_set>
 #include <atomic> // for std::atomic_uint
 #include <functional> // for std::function
+#include <filesystem>
 #ifdef check
 #undef check
 #endif
+namespace fs = std::experimental::filesystem::v1;
 
 namespace fleece { namespace impl {
     class Dict;
@@ -69,10 +71,10 @@ namespace litecore {
             static const Options defaults;
         };
 
-        DataFile(const FilePath &path, Delegate* delegate NONNULL, const Options* =nullptr);
+        DataFile(const fs::path &path, Delegate* delegate NONNULL, const Options* =nullptr);
         virtual ~DataFile();
 
-        FilePath filePath() const noexcept                  {return _path;}
+        fs::path filePath() const noexcept                  {return _path;}
         const Options& options() const noexcept             {return _options;}
 
         bool isClosing() const noexcept                     {return _closeSignaled;}
@@ -154,22 +156,22 @@ namespace litecore {
             virtual bool encryptionEnabled(EncryptionAlgorithm) =0;
 
             /** Opens a DataFile. */
-            virtual DataFile* openFile(const FilePath &path,
+            virtual DataFile* openFile(const fs::path &path,
                                        Delegate *delegate,
                                        const Options* =nullptr) =0;
 
             /** Deletes a non-open file. Returns false if it doesn't exist. */
-            bool deleteFile(const FilePath &path, const Options* =nullptr);
+            bool deleteFile(const fs::path &path, const Options* =nullptr);
 
             /** Moves a non-open file. */
-            virtual void moveFile(const FilePath &fromPath, const FilePath &toPath);
+            virtual void moveFile(const fs::path &fromPath, const fs::path &toPath);
 
             /** Does a file exist at this path? */
-            virtual bool fileExists(const FilePath &path);
+            virtual bool fileExists(const fs::path &path);
             
         protected:
             /** Deletes a non-open file. Returns false if it doesn't exist. */
-            virtual bool _deleteFile(const FilePath &path, const Options* =nullptr) =0;
+            virtual bool _deleteFile(const fs::path &path, const Options* =nullptr) =0;
 
             virtual ~Factory() { }
             friend class DataFile;
@@ -178,7 +180,7 @@ namespace litecore {
         static std::vector<Factory*> factories();
         static Factory* factoryNamed(const std::string &name);
         static Factory* factoryNamed(const char *name);
-        static Factory* factoryForFile(const FilePath&);
+        static Factory* factoryForFile(const fs::path&);
 
     protected:
         virtual std::string loggingIdentifier() const override;
@@ -240,7 +242,7 @@ namespace litecore {
 
         Delegate* const         _delegate;
         Retained<Shared>        _shared;                        // Shared state of file (lock)
-        FilePath const          _path;                          // Path as given (non-canonical)
+        fs::path const          _path;                          // Path as given (non-canonical)
         Options                 _options;                       // Option/capability flags
         mutable KeyStore*       _defaultKeyStore {nullptr};     // The default KeyStore
         std::unordered_map<std::string, std::unique_ptr<KeyStore>> _keyStores;// Opened KeyStores

@@ -124,7 +124,7 @@ namespace litecore { namespace REST {
     }
 
 
-    bool RESTListener::pathFromDatabaseName(const string &name, FilePath &path) {
+    bool RESTListener::pathFromDatabaseName(const string &name, fs::path &path) {
         if (!_directory || !isValidDatabaseName(name))
             return false;
         string filename = name;
@@ -135,7 +135,7 @@ namespace litecore { namespace REST {
 
 
     bool RESTListener::openDatabase(std::string name,
-                                const FilePath &path,
+                                const fs::path &path,
                                 const C4DatabaseConfig *config,
                                 C4Error *outError)
     {

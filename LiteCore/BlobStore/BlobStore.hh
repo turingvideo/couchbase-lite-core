@@ -22,6 +22,8 @@
 #include "Stream.hh"
 #include "SecureDigest.hh"
 #include <unordered_set>
+#include <filesystem>
+namespace fs = std::experimental::filesystem::v1;
 
 #if !SECURE_DIGEST_AVAILABLE
 #error No SHA digest API configured (See SecureDigest.hh)
@@ -29,7 +31,6 @@
 
 namespace litecore {
     class BlobStore;
-    class FilePath;
 
 
     /** A raw SHA-1 digest used as the unique identifier of a blob. */
@@ -62,17 +63,17 @@ namespace litecore {
     /** Represents a blob stored in a BlobStore. This class is thread-safe. */
     class Blob {
     public:
-        bool exists() const             {return _path.exists();}
+        bool exists() const             {return fs::exists(_path);}
 
         blobKey key() const             {return _key;}
-        FilePath path() const           {return _path;}
+        fs::path path() const           {return _path;}
         int64_t contentLength() const;      // An overestimate, if blob is encrypted
 
         alloc_slice contents() const    {return read()->readAll();}
 
         std::unique_ptr<SeekableReadStream> read() const;
 
-        void del()                      {_path.del();}
+        void del()                      {fs::remove(_path);}
 
     private:
         friend class BlobStore;
@@ -80,7 +81,7 @@ namespace litecore {
         
         Blob(const BlobStore&, const blobKey&);
 
-        const FilePath _path;
+        const fs::path _path;
         const blobKey _key;
         const BlobStore &_store;
     };
@@ -109,7 +110,7 @@ namespace litecore {
 
     private:
         BlobStore &_store;
-        FilePath _tmpPath;
+        fs::path _tmpPath;
         std::shared_ptr<WriteStream> _writer;
         uint64_t _bytesWritten {0};
         sha1Context _sha1ctx;
@@ -132,16 +133,16 @@ namespace litecore {
             static const Options defaults;
         };
 
-        BlobStore(const FilePath &dir, const Options* =nullptr);
+        BlobStore(const fs::path &dir, const Options* =nullptr);
 
-        const FilePath& dir() const                 {return _dir;}
+        const fs::path& dir() const                 {return _dir;}
         const Options& options() const              {return _options;}
         bool isEncrypted() const                    {return _options.encryptionAlgorithm !=
                                                                 kNoEncryption;}
         uint64_t count() const;
         uint64_t totalSize() const;
 
-        void deleteStore()                          {_dir.delRecursive();}
+        void deleteStore()                          {fs::remove_all(_dir);}
         void deleteAllExcept(const std::unordered_set<std::string>& inUse);
 
         bool has(const blobKey &key) const          {return get(key).exists();}
@@ -155,7 +156,7 @@ namespace litecore {
         void moveTo(BlobStore &toStore);            // Replace toStore's dir & options
 
     private:
-        FilePath const  _dir;                           // Location
+        fs::path const  _dir;                           // Location
         Options         _options;                       // Option/capability flags
     };
 

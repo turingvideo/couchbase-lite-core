@@ -164,7 +164,7 @@ namespace litecore {
         return digest() < other.digest();
     }
 
-    revid::operator std::string() const {
+    std::string revid::str() const {
         alloc_slice exp = expanded();
         return std::string((char*)exp.buf, exp.size);
     }

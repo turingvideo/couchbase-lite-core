@@ -47,7 +47,8 @@ namespace litecore {
         bool operator< (const revid&) const;
         bool operator> (const revid &r) const       {return r < *this;}
 
-        explicit operator std::string() const;
+        std::string str() const;
+        explicit operator std::string() const       {return str();}
 
     private:
         slice skipFlag() const;

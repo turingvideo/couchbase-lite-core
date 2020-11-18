@@ -17,13 +17,16 @@
 //
 
 #pragma once
-#include <thread>
 
 #ifndef _MSC_VER
 #include <pthread.h>
 #else
 #include <Windows.h>
+#include <atlbase.h>
 #endif
+
+#include <thread>
+#include <string>
 
 
 namespace litecore {
@@ -45,6 +48,26 @@ namespace litecore {
         DWORD dwFlags; // Reserved for future use, must be zero.
     } THREADNAME_INFO;
 #pragma pack(pop)
+
+    typedef HRESULT(*SetThreadNameCall)(HANDLE, PCWSTR);
+    typedef HRESULT(*GetThreadNameCall)(HANDLE, PWSTR*);
+    static HINSTANCE kernelLib = LoadLibrary(TEXT("kernel32.dll"));
+
+    static bool TryNewSetThreadName(const char* name) {
+        // According to docs, on some systems this function is only available this way
+        
+        static bool valid = false;
+        if(kernelLib != NULL) {
+            static SetThreadNameCall setThreadNameCall = (SetThreadNameCall)GetProcAddress(kernelLib, "SetThreadDescription");
+            if(setThreadNameCall != NULL) {
+                CA2WEX<256> wide(name, CP_UTF8);
+                setThreadNameCall(GetCurrentThread(), wide);
+                valid = true;
+            }
+        }
+
+        return valid;
+    }
 #endif
 
     static inline void SetThreadName(const char *name) {
@@ -57,6 +80,11 @@ namespace litecore {
 #endif
         }
 #else
+
+        if(!TryNewSetThreadName(name)) {
+            return;
+        }
+
         THREADNAME_INFO info;
         info.dwType = 0x1000;
         info.szName = name;
@@ -69,5 +97,41 @@ namespace litecore {
 
         }
 #endif
+    }
+
+    static inline std::string GetThreadName() {
+        std::string retVal;
+#ifndef _MSC_VER
+#ifdef __APPLE__
+        char name[256];
+        if(pthread_getname_np(name, 255) == 0) {
+            retVal = name;
+        }
+#else
+        char name[256];
+        if(pthread_getname_np(pthread_self(), name, 255) == 0) {
+            retVal = name;
+        }
+#endif
+#else
+        if(kernelLib != NULL) {
+            static GetThreadNameCall getThreadNameCall = (GetThreadNameCall)GetProcAddress(kernelLib, "GetThreadDescription");
+            if(getThreadNameCall != NULL) {
+                wchar_t *buf;
+                HRESULT r = getThreadNameCall(GetCurrentThread(), &buf);
+                if(SUCCEEDED(r)) {
+                    CW2AEX<256> mb(buf, CP_UTF8);
+                    retVal = mb;
+                    LocalFree(buf);
+                }
+            }
+        }
+#endif
+
+        if(retVal.size() == 0) {
+            retVal = std::string("#") + std::to_string(GetThreadId(GetCurrentThread()));
+        }
+
+        return retVal;
     }
 }

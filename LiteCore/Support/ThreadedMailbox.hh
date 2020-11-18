@@ -23,6 +23,7 @@
 
 #pragma once
 #include "Channel.hh"
+#include "ChannelManifest.hh"
 #include "RefCounted.hh"
 #include "Stopwatch.hh"
 #include <atomic>
@@ -56,8 +57,8 @@ namespace litecore { namespace actor {
 
         unsigned eventCount() const                         {return (unsigned)size() + (unsigned)_delayedEventCount;}
 
-        void enqueue(const std::function<void()>&);
-        void enqueueAfter(delay_t delay, const std::function<void()>&);
+        void enqueue(const char* name, const std::function<void()>&);
+        void enqueueAfter(delay_t delay, const char* name, const std::function<void()>&);
 
         static Actor* currentActor()                        {return sCurrentActor;}
 
@@ -75,6 +76,7 @@ namespace litecore { namespace actor {
 
         Actor* const _actor;
         std::string const _name;
+        mutable ChannelManifest _localManifest;
 
         int _delayedEventCount {0};
 #if DEBUG
@@ -90,6 +92,7 @@ namespace litecore { namespace actor {
 #endif
         
         static thread_local Actor* sCurrentActor;
+        static thread_local std::shared_ptr<ChannelManifest> sThreadManifest;
     };
 
     /** The Scheduler is reponsible for calling ThreadedMailboxes to run their Actor methods.

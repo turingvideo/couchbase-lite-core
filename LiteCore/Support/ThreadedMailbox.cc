@@ -23,10 +23,10 @@
 #include "Error.hh"
 #include "Timer.hh"
 #include "Logging.hh"
-#include "Channel.cc"       // Brings in the definitions of the template methods
 #include <future>
 #include <random>
 #include <map>
+#include <sstream>
 
 using namespace std;
 
@@ -55,7 +55,7 @@ namespace litecore { namespace actor {
         }
 
         void runAsync(void (*task)(void*), void *context) {
-            enqueue(&RunAsyncActor::_runAsync, task, context);
+            enqueue(FUNCTION_TO_QUEUE(RunAsyncActor::_runAsync), task, context);
         }
 
     private:
@@ -131,7 +131,7 @@ namespace litecore { namespace actor {
 #pragma mark - MAILBOX:
 
     thread_local Actor* ThreadedMailbox::sCurrentActor;
-
+    thread_local shared_ptr<ChannelManifest> ThreadedMailbox::sThreadManifest;
 
     ThreadedMailbox::ThreadedMailbox(Actor *a, const std::string &name, ThreadedMailbox *parent)
     :_actor(a)
@@ -140,38 +140,52 @@ namespace litecore { namespace actor {
         Scheduler::sharedScheduler()->start();
     }
 
-    void ThreadedMailbox::enqueue(const std::function<void()> &f) {
+    void ThreadedMailbox::enqueue(const char* name, const std::function<void()> &f) {
         beginLatency();
         retain(_actor);
-        const auto wrappedBlock = [f, SELF]
+        auto threadManifest = sThreadManifest ? sThreadManifest : make_shared<ChannelManifest>();
+        threadManifest->addEnqueueCall(name);
+        _localManifest.addEnqueueCall(name);
+        const auto wrappedBlock = [f, threadManifest, name, SELF]
         {
+            threadManifest->addExecution(name);
+            sThreadManifest = threadManifest;
+            _localManifest.addExecution(name);
             endLatency();
             beginBusy();
             safelyCall(f);
             afterEvent();
+            sThreadManifest.reset();
         };
 
         if (push(wrappedBlock))
             reschedule();
     }
 
-    void ThreadedMailbox::enqueueAfter(delay_t delay, const std::function<void()> &f) {
+    void ThreadedMailbox::enqueueAfter(delay_t delay, const char* name, const std::function<void()> &f) {
         if (delay <= delay_t::zero())
-            return enqueue(f);
+            return enqueue(name, f);
 
         beginLatency();
         _delayedEventCount++;
         retain(_actor);
+        auto threadManifest = sThreadManifest ? sThreadManifest : make_shared<ChannelManifest>();
+        threadManifest->addEnqueueCall(name, delay.count());
+        _localManifest.addEnqueueCall(name, delay.count());
 
-        auto timer = new Timer([f, this]
+        auto timer = new Timer([f, threadManifest, name, this]
         { 
-            const auto wrappedBlock = [f, SELF]
+            const auto wrappedBlock = [f, threadManifest, name, SELF]
             {
+                threadManifest->addExecution(name);
+                sThreadManifest = threadManifest;
+                _localManifest.addExecution(name);
                 endLatency();
                 beginBusy();
                 safelyCall(f);
                 --_delayedEventCount;
                 afterEvent();
+                sThreadManifest.reset();
             };
             
             if (push(wrappedBlock))
@@ -188,6 +202,13 @@ namespace litecore { namespace actor {
             f();
         } catch(std::exception& x) {
             _actor->caughtException(x);
+            stringstream manifest;
+            manifest << "Thread Manifest History:" << endl;
+            sThreadManifest->dump(manifest);
+            manifest << endl << "Actor Manifest History:" << endl;
+            _localManifest.dump(manifest);
+            const auto dumped = manifest.str();
+            Warn("%s", dumped.c_str());
         }
     }
 

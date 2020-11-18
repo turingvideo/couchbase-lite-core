@@ -36,12 +36,12 @@ namespace litecore {
 
 
     void Housekeeper::start() {
-        enqueue(&Housekeeper::_scheduleExpiration);
+        enqueue(FUNCTION_TO_QUEUE(Housekeeper::_scheduleExpiration));
     }
 
 
     void Housekeeper::stop() {
-        enqueue(&Housekeeper::_stop);
+        enqueue(FUNCTION_TO_QUEUE(Housekeeper::_stop));
         waitTillCaughtUp();
     }
 

@@ -17,7 +17,6 @@
 //
 
 #include "ChannelManifest.hh"
-#include "ThreadedMailbox.hh"
 #include "ThreadUtil.hh"
 #include <sstream>
 #include <string>
@@ -27,16 +26,20 @@ using namespace std;
 using namespace litecore;
 using namespace litecore::actor;
 
- void ChannelManifest::addEnqueueCall(const char* name, double after) {
+ void ChannelManifest::addEnqueueCall(dispatch_queue_t queue, const char* name, double after) {
     auto now = chrono::system_clock::now();
     auto elapsed = chrono::duration_cast<chrono::milliseconds>(now - _start);
     stringstream s;
     s << name;
 #ifdef ACTORS_USE_GCD
-
-#else
-    s << " [from thread " << GetThreadName();
+    if(queue != 0) {
+        s << " [from queue " << dispatch_queue_get_label(queue);
+    } else
 #endif
+    {
+        s << " [from thread " << GetThreadName();
+    }
+     
     if(after != 0) {
         s << " after " << after << " secs";
     }
@@ -53,13 +56,13 @@ using namespace litecore::actor;
     }
 }
 
-void ChannelManifest::addExecution(const char* name) {
+void ChannelManifest::addExecution(dispatch_queue_t queue, const char* name) {
     auto now = chrono::system_clock::now();
     auto elapsed = chrono::duration_cast<chrono::milliseconds>(now - _start);
     stringstream s;
     s << name;
 #ifdef ACTORS_USE_GCD
-
+    s << " [on queue " << dispatch_queue_get_label(queue) << "]";
 #else
     s << " [on thread " << GetThreadName() << "]";
 #endif

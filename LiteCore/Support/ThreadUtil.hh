@@ -105,21 +105,25 @@ namespace litecore {
     static inline std::string GetThreadName() {
         std::string retVal;
 #ifndef _MSC_VER
-#ifdef __APPLE__
-        char name[256];
-        if(pthread_getname_np(name, 255) == 0) {
-            retVal = name;
-        }
-#else
         std::stringstream s;
         char name[256];
-        if(pthread_getname_np(pthread_self(), name, 255) == 0) {
+        if(pthread_getname_np(pthread_self(), name, 255) == 0 && name[0] != 0) {
             s << name << " ";
         }
 
-        s << "(" << syscall(__NR_gettid) << ")";
-        retVal = s.str();
+        pid_t tid;
+#ifdef __APPLE__
+        // FreeBSD only pthread call, cannot use with glibc, and conversely syscall
+        // is deprecated in macOS 10.12+
+        uint64_t tmp;
+        pthread_threadid_np(pthread_self(), &tmp);
+        tid = (pid_t)tmp;
+#else
+        tid = syscall(__NR_gettid);
 #endif
+        
+        s << "(" << tid<< ")";
+        retVal = s.str();
 #else
         if(kernelLib != NULL) {
             static GetThreadNameCall getThreadNameCall = (GetThreadNameCall)GetProcAddress(kernelLib, "GetThreadDescription");
@@ -136,7 +140,6 @@ namespace litecore {
 #endif
 
         if(retVal.size() == 0) {
-            std::stringstream s;
             s << std::this_thread::get_id();
             retVal = s.str();
         }

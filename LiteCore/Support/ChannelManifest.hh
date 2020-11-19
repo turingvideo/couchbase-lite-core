@@ -21,6 +21,11 @@
 #include <list>
 #include <iostream>
 #include <mutex>
+#include "ThreadedMailbox.hh"
+
+#ifdef ACTORS_USE_GCD
+#include <dispatch/dispatch.h>
+#endif
 
 namespace litecore::actor {
     
@@ -43,6 +48,22 @@ namespace litecore::actor {
     class ChannelManifest
     {
     public:
+#ifdef ACTORS_USE_GCD
+        /**
+         * Records a call to enqueue, with an optional delay
+         * @param queue The queue being operated on currently
+         * @param name  The name of the method being enqueued
+         * @param after The delay, if any, that the method will be delayed before execution
+         */
+        void addEnqueueCall(dispatch_queue_t queue, const char* name, double after = 0.0);
+
+        /**
+         * Records an execution of a previously queued item
+         * @param queue The queue being operated on currently
+         * @param name  The name of the method that will be executed
+         */
+        void addExecution(dispatch_queue_t queue, const char* name);
+#else
         /**
          * Records a call to enqueue, with an optional delay
          * @param name  The name of the method being enqueued
@@ -55,6 +76,7 @@ namespace litecore::actor {
          * @param name  The name of the method that will be executed
          */
         void addExecution(const char* name);
+#endif
 
         /**
          * Records the history of this manifest to the given output stream.  The format is:

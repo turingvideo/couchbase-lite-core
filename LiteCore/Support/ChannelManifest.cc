@@ -61,7 +61,7 @@ void ChannelManifest::addExecution(const char* name) {
 #ifdef ACTORS_USE_GCD
 
 #else
-    s << " [on thread #" << GetThreadName() << "]";
+    s << " [on thread " << GetThreadName() << "]";
 #endif
 
     {

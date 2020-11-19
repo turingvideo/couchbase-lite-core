@@ -20,6 +20,9 @@
 
 #ifndef _MSC_VER
 #include <pthread.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/syscall.h>
 #else
 #include <Windows.h>
 #include <atlbase.h>
@@ -27,7 +30,7 @@
 
 #include <thread>
 #include <string>
-
+#include <sstream>
 
 namespace litecore {
 
@@ -108,10 +111,14 @@ namespace litecore {
             retVal = name;
         }
 #else
+        std::stringstream s;
         char name[256];
         if(pthread_getname_np(pthread_self(), name, 255) == 0) {
-            retVal = name;
+            s << name << " ";
         }
+
+        s << "(" << syscall(__NR_gettid) << ")";
+        retVal = s.str();
 #endif
 #else
         if(kernelLib != NULL) {
@@ -129,7 +136,9 @@ namespace litecore {
 #endif
 
         if(retVal.size() == 0) {
-            retVal = std::string("#") + std::to_string(GetThreadId(GetCurrentThread()));
+            std::stringstream s;
+            s << std::this_thread::get_id();
+            retVal = s.str();
         }
 
         return retVal;

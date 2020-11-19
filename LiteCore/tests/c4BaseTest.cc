@@ -20,6 +20,7 @@
 #include "InstanceCounted.hh"
 #include "catch.hpp"
 #include "Actor.hh"
+#include <exception>
 #ifdef WIN32
 #include <winerror.h>
 #endif
@@ -152,7 +153,7 @@ namespace {
         }
 
         void _bad_doot() {
-            throw exception("TURN TO THE DARK SIDE");
+            throw std::runtime_error("TURN TO THE DARK SIDE");
         }
 
         void _bad_recursive_doot() {

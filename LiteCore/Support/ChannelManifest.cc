@@ -34,7 +34,6 @@ using namespace litecore::actor;
 #endif
     auto now = chrono::system_clock::now();
     auto elapsed = chrono::duration_cast<chrono::microseconds>(now - _start);
-    auto logging = dynamic_cast<const Logging*>(actor);
     stringstream s;
     s << actor->loggingName() << "::" << name;
 #ifdef ACTORS_USE_GCD

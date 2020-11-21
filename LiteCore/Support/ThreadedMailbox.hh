@@ -16,7 +16,7 @@
 // limitations under the License.
 //
 
-#if __APPLE__
+#if __APPLE__ && !defined(ACTORS_USE_GCD)
 // Use GCD if available, as it's more efficient and has better integration with OS & debugger.
 #define ACTORS_USE_GCD
 #endif

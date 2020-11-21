@@ -118,7 +118,7 @@ namespace {
     class TestActor : public litecore::actor::Actor {
     public:
         TestActor() 
-            :Actor("TestActor")
+            :Actor(kC4Cpp_DefaultLog, "TestActor")
         {}
 
         void doot() {

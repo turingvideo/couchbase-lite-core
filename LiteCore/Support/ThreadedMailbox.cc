@@ -51,7 +51,7 @@ namespace litecore { namespace actor {
     struct RunAsyncActor : Actor
     {
         RunAsyncActor()
-            : Actor("runAsync") {
+            : Actor(kC4Cpp_DefaultLog, "runAsync") {
         }
 
         void runAsync(void (*task)(void*), void *context) {
@@ -144,13 +144,13 @@ namespace litecore { namespace actor {
         beginLatency();
         retain(_actor);
         auto threadManifest = sThreadManifest ? sThreadManifest : make_shared<ChannelManifest>();
-        threadManifest->addEnqueueCall(name);
-        _localManifest.addEnqueueCall(name);
+        threadManifest->addEnqueueCall(_actor, name);
+        _localManifest.addEnqueueCall(_actor, name);
         const auto wrappedBlock = [f, threadManifest, name, SELF]
         {
-            threadManifest->addExecution(name);
+            threadManifest->addExecution(_actor, name);
             sThreadManifest = threadManifest;
-            _localManifest.addExecution(name);
+            _localManifest.addExecution(_actor, name);
             endLatency();
             beginBusy();
             safelyCall(f);
@@ -170,16 +170,16 @@ namespace litecore { namespace actor {
         _delayedEventCount++;
         retain(_actor);
         auto threadManifest = sThreadManifest ? sThreadManifest : make_shared<ChannelManifest>();
-        threadManifest->addEnqueueCall(name, delay.count());
-        _localManifest.addEnqueueCall(name, delay.count());
+        threadManifest->addEnqueueCall(_actor, name, delay.count());
+        _localManifest.addEnqueueCall(_actor, name, delay.count());
 
         auto timer = new Timer([f, threadManifest, name, this]
         { 
             const auto wrappedBlock = [f, threadManifest, name, SELF]
             {
-                threadManifest->addExecution(name);
+                threadManifest->addExecution(_actor, name);
                 sThreadManifest = threadManifest;
-                _localManifest.addExecution(name);
+                _localManifest.addExecution(_actor, name);
                 endLatency();
                 beginBusy();
                 safelyCall(f);

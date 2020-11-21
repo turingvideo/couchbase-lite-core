@@ -43,7 +43,7 @@ namespace litecore {
                              Query *query,
                              bool continuous,
                              Delegate *delegate)
-    :Logging(QueryLog)
+    :Actor(QueryLog)
     ,_database(db)
     ,_backgroundDB(db->backgroundDatabase())
     ,_expression(query->expression())

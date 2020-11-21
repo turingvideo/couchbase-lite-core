@@ -29,7 +29,7 @@ namespace litecore {
     using namespace actor;
 
     Housekeeper::Housekeeper(Database *db)
-    :Actor("Housekeeper")
+    :Actor(DBLog, "Housekeeper")
     ,_bgdb(db->backgroundDatabase())
     ,_expiryTimer(std::bind(&Housekeeper::_doExpiration, this))
     { }

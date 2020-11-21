@@ -85,9 +85,8 @@ namespace litecore { namespace repl {
                    const Options &options,
                    std::shared_ptr<DBAccess> dbAccess,
                    const char *namePrefix)
-    :Actor(string(namePrefix) + connection->name(),
+    :Actor(SyncLog, string(namePrefix) + connection->name(),
            (parent ? parent->mailboxForChildren() : nullptr))
-    ,Logging(SyncLog)
     ,_connection(connection)
     ,_parent(parent)
     ,_options(options)

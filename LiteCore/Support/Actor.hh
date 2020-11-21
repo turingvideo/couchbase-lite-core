@@ -18,6 +18,7 @@
 
 #pragma once
 #include "ThreadedMailbox.hh"
+#include "Logging.hh"
 #include <assert.h>
 #include <chrono>
 #include <functional>
@@ -80,7 +81,7 @@ namespace litecore { namespace actor {
         a private thread belonging to the Scheduler). It is guaranteed that only one enqueued
         method call will be run at once, so the Actor implementation is effectively single-
         threaded. */
-    class Actor : public RefCounted {
+    class Actor : public RefCounted, public Logging {
     public:
 
         unsigned eventCount() const                         {return _mailbox.eventCount();}
@@ -97,14 +98,16 @@ namespace litecore { namespace actor {
 
     protected:
         /** Constructs an Actor.
+            @param domain The domain which this actor is logged to.
             @param name  Used for logging, and on Apple platforms for naming the GCD queue;
                         otherwise unimportant.
             @param parentMailbox  Used for limiting concurrency on some platforms: if non-null,
                         then only one Actor with the same parentMailbox can execute at once.
                         This helps control the number of threads created by the OS. This is only
                         implemented on Apple platforms, where it determines the target queue. */
-        Actor(const std::string &name ="", Mailbox *parentMailbox =nullptr)
-        :_mailbox(this, name, parentMailbox)
+        Actor(LogDomain& domain, const std::string &name ="", Mailbox *parentMailbox =nullptr)
+        :Logging(domain)
+        ,_mailbox(this, name, parentMailbox)
         { }
 
         /** Schedules a call to a method. */
@@ -140,6 +143,8 @@ namespace litecore { namespace actor {
         virtual void afterEvent()                    { }
 
         virtual void caughtException(const std::exception &x);
+
+        virtual std::string loggingIdentifier() const { return actorName(); }
 
         void logStats() {
             _mailbox.logStats();

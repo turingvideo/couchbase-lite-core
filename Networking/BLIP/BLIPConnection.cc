@@ -92,7 +92,7 @@ namespace litecore { namespace blip {
 
 
     /** The guts of a Connection. */
-    class BLIPIO : public actor::Actor, public Logging, public websocket::Delegate {
+    class BLIPIO : public actor::Actor, public websocket::Delegate {
     private:
         using MessageMap = unordered_map<MessageNo, Retained<MessageIn>>;
         using HandlerKey = pair<string, bool>;
@@ -120,8 +120,7 @@ namespace litecore { namespace blip {
     public:
 
         BLIPIO(Connection *connection, WebSocket *webSocket, Deflater::CompressionLevel compressionLevel)
-        :Actor(string("BLIP[") + connection->name() + "]")
-        ,Logging(BLIPLog)
+        :Actor(BLIPLog, string("BLIP[") + connection->name() + "]")
         ,_connection(connection)
         ,_webSocket(webSocket)
         ,_incomingFrames(this, "incomingFrames", &BLIPIO::_onWebSocketMessages)

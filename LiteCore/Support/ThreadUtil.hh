@@ -104,8 +104,8 @@ namespace litecore {
 
     static inline std::string GetThreadName() {
         std::string retVal;
-#ifndef _MSC_VER
         std::stringstream s;
+#ifndef _MSC_VER
         char name[256];
         if(pthread_getname_np(pthread_self(), name, 255) == 0 && name[0] != 0) {
             s << name << " ";

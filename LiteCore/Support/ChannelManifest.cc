@@ -18,6 +18,7 @@
 
 #include "ChannelManifest.hh"
 #include "ThreadUtil.hh"
+#include "Actor.hh"
 #include <sstream>
 #include <string>
 #include <chrono>
@@ -26,11 +27,16 @@ using namespace std;
 using namespace litecore;
 using namespace litecore::actor;
 
- void ChannelManifest::addEnqueueCall(dispatch_queue_t queue, const char* name, double after) {
+#ifdef ACTORS_USE_GCD
+ void ChannelManifest::addEnqueueCall(const Actor* actor, dispatch_queue_t queue, const char* name, double after) {
+#else
+ void ChannelManifest::addEnqueueCall(const Actor* actor, const char* name, double after) {
+#endif
     auto now = chrono::system_clock::now();
-    auto elapsed = chrono::duration_cast<chrono::milliseconds>(now - _start);
+    auto elapsed = chrono::duration_cast<chrono::microseconds>(now - _start);
+    auto logging = dynamic_cast<const Logging*>(actor);
     stringstream s;
-    s << name;
+    s << actor->loggingName() << "::" << name;
 #ifdef ACTORS_USE_GCD
     if(queue != 0) {
         s << " [from queue " << dispatch_queue_get_label(queue);
@@ -56,11 +62,15 @@ using namespace litecore::actor;
     }
 }
 
-void ChannelManifest::addExecution(dispatch_queue_t queue, const char* name) {
+#ifdef ACTORS_USE_GCD
+ void ChannelManifest::addExecution(const Actor* actor, dispatch_queue_t queue, const char* name) {
+#else
+void ChannelManifest::addExecution(const Actor* actor, const char* name) {
+#endif
     auto now = chrono::system_clock::now();
-    auto elapsed = chrono::duration_cast<chrono::milliseconds>(now - _start);
+    auto elapsed = chrono::duration_cast<chrono::microseconds>(now - _start);
     stringstream s;
-    s << name;
+    s << actor->loggingName() << "::" << name;
 #ifdef ACTORS_USE_GCD
     s << " [on queue " << dispatch_queue_get_label(queue) << "]";
 #else
@@ -85,7 +95,7 @@ void ChannelManifest::dump(ostream& out) {
     }
 
     for(const auto& entry : _enqueueCalls) {
-        out << "\t[" << entry.elapsed.count() << " ms] " << entry.name << endl;
+        out << "\t[" << entry.elapsed.count() / 1000.0 << " ms] " << entry.description << endl;
     }
 
     out << "Resulting execution calls:" << endl;
@@ -93,6 +103,6 @@ void ChannelManifest::dump(ostream& out) {
         out << "\t..." << _truncatedExecution << " truncated frames...";
     }
     for(const auto& entry : _executions) {
-        out << "\t[" << entry.elapsed.count() << " ms] " << entry.name << endl;
+        out << "\t[" << entry.elapsed.count() / 1000.0 << " ms] " << entry.description << endl;
     }
 }

@@ -140,11 +140,11 @@ namespace litecore { namespace websocket {
 
 
         // The internal Actor that does the real work
-        class Driver : public actor::Actor, protected Logging {
+        class Driver : public actor::Actor {
         public:
 
             Driver(LoopbackWebSocket *ws, actor::delay_t latency)
-            :Logging(WSLogDomain)
+            :Actor(WSLogDomain)
             ,_webSocket(ws)
             ,_latency(latency)
             { }

@@ -17,17 +17,21 @@
 //
 
 #pragma once
+#if __APPLE__ && !defined(ACTORS_USE_GCD)
+// Use GCD if available, as it's more efficient and has better integration with OS & debugger.
+#define ACTORS_USE_GCD
+#endif
 
 #include <list>
 #include <iostream>
 #include <mutex>
-#include "ThreadedMailbox.hh"
 
 #ifdef ACTORS_USE_GCD
 #include <dispatch/dispatch.h>
 #endif
 
 namespace litecore::actor {
+    class Actor;
     
     /** A simple class to keep track of nested mailbox calls, similar to the way that Apple tracks
      *  through GCD enqueue calls.  The way it works is as follows, and is common between both
@@ -55,27 +59,27 @@ namespace litecore::actor {
          * @param name  The name of the method being enqueued
          * @param after The delay, if any, that the method will be delayed before execution
          */
-        void addEnqueueCall(dispatch_queue_t queue, const char* name, double after = 0.0);
+        void addEnqueueCall(const litecore::actor::Actor* actor, dispatch_queue_t queue, const char* name, double after = 0.0);
 
         /**
          * Records an execution of a previously queued item
          * @param queue The queue being operated on currently
          * @param name  The name of the method that will be executed
          */
-        void addExecution(dispatch_queue_t queue, const char* name);
+        void addExecution(const litecore::actor::Actor* actor, dispatch_queue_t queue, const char* name);
 #else
         /**
          * Records a call to enqueue, with an optional delay
          * @param name  The name of the method being enqueued
          * @param after The delay, if any, that the method will be delayed before execution
          */
-        void addEnqueueCall(const char* name, double after = 0.0);
+        void addEnqueueCall(const litecore::actor::Actor* actor, const char* name, double after = 0.0);
 
         /**
          * Records an execution of a previously queued item
          * @param name  The name of the method that will be executed
          */
-        void addExecution(const char* name);
+        void addExecution(const litecore::actor::Actor* actor, const char* name);
 #endif
 
         /**
@@ -105,8 +109,8 @@ namespace litecore::actor {
     private:
         struct ChannelManifestEntry
         {
-            std::chrono::milliseconds elapsed;
-            std::string name;
+            std::chrono::microseconds elapsed;
+            std::string description;
         };
 
         const std::chrono::system_clock::time_point _start = std::chrono::system_clock::now();

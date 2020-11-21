@@ -570,7 +570,7 @@ namespace litecore {
     }
 
     std::string Logging::loggingName() const {
-        return format("{%s#%u}", loggingClassName().c_str(), _objectRef);
+        return format("{%s#%u}", loggingClassName().c_str(), getObjectRef());
     }
 
     std::string Logging::loggingClassName() const {

@@ -18,11 +18,23 @@
 
 #pragma once
 
+#if defined(CMAKE)
+#include "config_thread.h"
+#elif define(__APPLE__)
+#define HAVE_PTHREAD_GETNAME_NP 1
+#define HAVE_PTHREAD_THREADID_NP 1
+#endif
+
 #ifndef _MSC_VER
 #include <pthread.h>
 #include <sys/types.h>
 #include <unistd.h>
+#ifndef HAVE_PTHREAD_THREADID_NP
 #include <sys/syscall.h>
+#endif
+#ifndef HAVE_PTHREAD_GETNAME_NP
+#include <sys/prctl.h>
+#endif
 #else
 #include <Windows.h>
 #include <atlbase.h>
@@ -35,7 +47,7 @@
 namespace litecore {
 
 #ifdef _MSC_VER
-    // This is sickening, but it is the only way to set thread names in MSVC.
+    // This is sickening, but it used to be the only way to set thread names in MSVC.
     // By raising an SEH exception (Windows equivalent to Unix signal)
     // then catching and ignoring it
     // https://stackoverflow.com/a/10364541/1155387
@@ -107,18 +119,28 @@ namespace litecore {
         std::stringstream s;
 #ifndef _MSC_VER
         char name[256];
+#if HAVE_PTHREAD_GETNAME_NP
         if(pthread_getname_np(pthread_self(), name, 255) == 0 && name[0] != 0) {
             s << name << " ";
         }
+#elif HAVE_PRCTL
+        if(prctl(PR_GET_NAME, name, 0, 0, 0) == 0) {
+            s << name << " ";
+        }
+#else
+        s << "<unknown thread name> ";
+#endif
 
         pid_t tid;
-#ifdef __APPLE__
+#if HAVE_PTHREAD_THREADID_NP
         // FreeBSD only pthread call, cannot use with glibc, and conversely syscall
         // is deprecated in macOS 10.12+
         uint64_t tmp;
         pthread_threadid_np(pthread_self(), &tmp);
         tid = (pid_t)tmp;
-#else
+#elif HAVE_SYS_GETTID
+        tid = syscall(SYS_gettid);
+#elif HAVE_NR_GETTID
         tid = syscall(__NR_gettid);
 #endif
         

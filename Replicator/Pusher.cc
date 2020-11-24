@@ -61,12 +61,11 @@ namespace litecore { namespace repl {
 
     // Begins active push, starting from the next sequence after sinceSequence
     void Pusher::_start() {
-        throw std::runtime_error("I BROKE IT");
-//        auto sinceSequence = _checkpointer.localMinSequence();
-//        logInfo("Starting %spush from local seq #%" PRIu64,
-//            (_continuous ? "continuous " : ""), sinceSequence+1);
-//        _started = true;
-//        startSending(sinceSequence);
+       auto sinceSequence = _checkpointer.localMinSequence();
+       logInfo("Starting %spush from local seq #%" PRIu64,
+           (_continuous ? "continuous " : ""), sinceSequence+1);
+       _started = true;
+       startSending(sinceSequence);
     }
 
 

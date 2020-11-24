@@ -20,9 +20,9 @@
 
 #if defined(CMAKE)
 #include "config_thread.h"
-#elif define(__APPLE__)
-#define HAVE_PTHREAD_GETNAME_NP 1
-#define HAVE_PTHREAD_THREADID_NP 1
+#elif defined(__APPLE__)
+#define HAVE_PTHREAD_GETNAME_NP
+#define HAVE_PTHREAD_THREADID_NP
 #endif
 
 #ifndef _MSC_VER
@@ -64,13 +64,13 @@ namespace litecore {
     } THREADNAME_INFO;
 #pragma pack(pop)
 
+    // Sometimes these functions are only available this way, according to the docs:
+    // https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreaddescription#remarks
     typedef HRESULT(*SetThreadNameCall)(HANDLE, PCWSTR);
     typedef HRESULT(*GetThreadNameCall)(HANDLE, PWSTR*);
     static HINSTANCE kernelLib = LoadLibrary(TEXT("kernel32.dll"));
 
     static bool TryNewSetThreadName(const char* name) {
-        // According to docs, on some systems this function is only available this way
-        
         static bool valid = false;
         if(kernelLib != NULL) {
             static SetThreadNameCall setThreadNameCall = (SetThreadNameCall)GetProcAddress(kernelLib, "SetThreadDescription");
@@ -119,11 +119,11 @@ namespace litecore {
         std::stringstream s;
 #ifndef _MSC_VER
         char name[256];
-#if HAVE_PTHREAD_GETNAME_NP
+#if defined(HAVE_PTHREAD_GETNAME_NP)
         if(pthread_getname_np(pthread_self(), name, 255) == 0 && name[0] != 0) {
             s << name << " ";
         }
-#elif HAVE_PRCTL
+#elif defined(HAVE_PRCTL)
         if(prctl(PR_GET_NAME, name, 0, 0, 0) == 0) {
             s << name << " ";
         }
@@ -132,15 +132,15 @@ namespace litecore {
 #endif
 
         pid_t tid;
-#if HAVE_PTHREAD_THREADID_NP
+#if defined(HAVE_PTHREAD_THREADID_NP)
         // FreeBSD only pthread call, cannot use with glibc, and conversely syscall
         // is deprecated in macOS 10.12+
         uint64_t tmp;
         pthread_threadid_np(pthread_self(), &tmp);
         tid = (pid_t)tmp;
-#elif HAVE_SYS_GETTID
+#elif defined(HAVE_SYS_GETTID)
         tid = syscall(SYS_gettid);
-#elif HAVE_NR_GETTID
+#elif defined(HAVE_NR_GETTID)
         tid = syscall(__NR_gettid);
 #endif
         

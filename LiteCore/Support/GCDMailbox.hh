@@ -64,6 +64,8 @@ namespace litecore { namespace actor {
         std::atomic<int32_t> _eventCount {0};
         mutable ChannelManifest _localManifest;
         
+        static thread_local std::shared_ptr<ChannelManifest> sQueueManifest;
+        
 #if ACTORS_TRACK_STATS
         int32_t _callCount {0};
         int32_t _maxEventCount {0};

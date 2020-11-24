@@ -42,10 +42,9 @@ namespace litecore { namespace actor {
 
     
     static char kQueueMailboxSpecificKey;
-    static char kQueueManifestSpecificKey;
-    static char kQueueManifestRefCountSpecificKey;
 
     static const qos_class_t kQOS = QOS_CLASS_UTILITY;
+    thread_local shared_ptr<ChannelManifest> GCDMailbox::sQueueManifest = nullptr;
 
     GCDMailbox::GCDMailbox(Actor *a, const std::string &name, GCDMailbox *parentMailbox)
     :_actor(a)
@@ -90,17 +89,13 @@ namespace litecore { namespace actor {
             block();
         } catch (const std::exception &x) {
             _actor->caughtException(x);
-            auto manifestObj = (ChannelManifest *)dispatch_queue_get_specific(_queue, &kQueueManifestSpecificKey);
-            if(manifestObj) {
-                stringstream manifest;
-                manifest << "Queue Manifest History:" << endl;
-                manifestObj->dump(manifest);
-                manifest << endl << "Actor Manifest History:" << endl;
-                _localManifest.dump(manifest);
-                const auto dumped = manifest.str();
-                Warn("%s", dumped.c_str());
-            }
-            
+            stringstream manifest;
+            manifest << "Queue Manifest History:" << endl;
+            sQueueManifest->dump(manifest);
+            manifest << endl << "Actor Manifest History:" << endl;
+            _localManifest.dump(manifest);
+            const auto dumped = manifest.str();
+            Warn("%s", dumped.c_str());
         }
     }
 
@@ -109,33 +104,19 @@ namespace litecore { namespace actor {
         beginLatency();
         ++_eventCount;
         retain(_actor);
-        auto queueManifest = (ChannelManifest *)dispatch_queue_get_specific(_queue, &kQueueManifestSpecificKey);
-        if(!queueManifest) {
-            queueManifest = new ChannelManifest();
-            dispatch_queue_set_specific(_queue, &kQueueManifestRefCountSpecificKey, (void *)0x1U, nullptr);
-            queueManifest->addEnqueueCall(0, name);
-            _localManifest.addEnqueueCall(0, name);
-        } else {
-            uint64_t count = (uint64_t)dispatch_queue_get_specific(_queue, &kQueueManifestRefCountSpecificKey);
-            dispatch_queue_set_specific(_queue, &kQueueManifestRefCountSpecificKey, (void *)(count+1), nullptr);
-            queueManifest->addEnqueueCall(_queue, name);
-            _localManifest.addEnqueueCall(_queue, name);
-        }
+        auto queueManifest = sQueueManifest ? sQueueManifest : make_shared<ChannelManifest>();
+        queueManifest->addEnqueueCall(_actor, name);
+        _localManifest.addEnqueueCall(_actor, name);
         
         auto wrappedBlock = ^{
-            queueManifest->addExecution(_queue, name);
-            dispatch_queue_set_specific(_queue, &kQueueManifestSpecificKey, queueManifest, nullptr);
-            _localManifest.addExecution(_queue, name);
+            queueManifest->addExecution(_actor, name);
+            sQueueManifest = queueManifest;
+            _localManifest.addExecution(_actor, name);
             endLatency();
             beginBusy();
             safelyCall(block);
             afterEvent();
-            dispatch_queue_set_specific(_queue, &kQueueManifestSpecificKey, nullptr, nullptr);
-            uint64_t count = (uint64_t)dispatch_queue_get_specific(_queue, &kQueueManifestRefCountSpecificKey);
-            dispatch_queue_set_specific(_queue, &kQueueManifestRefCountSpecificKey, (void *)(count-1), nullptr);
-            if(count == 1) {
-                delete queueManifest;
-            }
+            sQueueManifest.reset();
         };
         dispatch_async(_queue, wrappedBlock);
     }
@@ -145,33 +126,19 @@ namespace litecore { namespace actor {
         beginLatency();
         ++_eventCount;
         retain(_actor);
-        auto queueManifest = (ChannelManifest *)dispatch_queue_get_specific(_queue, &kQueueManifestSpecificKey);
-        if(!queueManifest) {
-            queueManifest = new ChannelManifest();
-            dispatch_queue_set_specific(_queue, &kQueueManifestRefCountSpecificKey, (void *)0x1U, nullptr);
-            queueManifest->addEnqueueCall(0, name, delay.count());
-            _localManifest.addEnqueueCall(0, name, delay.count());
-        } else {
-            uint64_t count = (uint64_t)dispatch_queue_get_specific(_queue, &kQueueManifestRefCountSpecificKey);
-            dispatch_queue_set_specific(_queue, &kQueueManifestRefCountSpecificKey, (void *)(count+1), nullptr);
-            queueManifest->addEnqueueCall(_queue, name, delay.count());
-            _localManifest.addEnqueueCall(_queue, name, delay.count());
-        }
+        auto queueManifest = sQueueManifest ? sQueueManifest : make_shared<ChannelManifest>();
+        queueManifest->addEnqueueCall(_actor, name, delay.count());
+        _localManifest.addEnqueueCall(_actor, name, delay.count());
         
         auto wrappedBlock = ^{
-            queueManifest->addExecution(_queue, name);
-            dispatch_queue_set_specific(_queue, &kQueueManifestSpecificKey, queueManifest, nullptr);
-            _localManifest.addExecution(_queue, name);
+            queueManifest->addExecution(_actor, name);
+            sQueueManifest = queueManifest;
+            _localManifest.addExecution(_actor, name);
             endLatency();
             beginBusy();
             safelyCall(block);
             afterEvent();
-            dispatch_queue_set_specific(_queue, &kQueueManifestSpecificKey, nullptr, nullptr);
-            uint64_t count = (uint64_t)dispatch_queue_get_specific(_queue, &kQueueManifestRefCountSpecificKey);
-            dispatch_queue_set_specific(_queue, &kQueueManifestRefCountSpecificKey, (void *)(count-1), nullptr);
-            if(count == 1) {
-                delete queueManifest;
-            }
+            sQueueManifest.reset();
         };
         int64_t ns = std::chrono::duration_cast<std::chrono::nanoseconds>(delay).count();
         if (ns > 0)

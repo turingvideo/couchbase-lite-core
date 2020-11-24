@@ -27,24 +27,21 @@ using namespace std;
 using namespace litecore;
 using namespace litecore::actor;
 
-#ifdef ACTORS_USE_GCD
- void ChannelManifest::addEnqueueCall(const Actor* actor, dispatch_queue_t queue, const char* name, double after) {
-#else
  void ChannelManifest::addEnqueueCall(const Actor* actor, const char* name, double after) {
-#endif
     auto now = chrono::system_clock::now();
     auto elapsed = chrono::duration_cast<chrono::microseconds>(now - _start);
     stringstream s;
     s << actor->loggingName() << "::" << name;
 #ifdef ACTORS_USE_GCD
-    if(queue != 0) {
-        s << " [from queue " << dispatch_queue_get_label(queue);
-    } else
+     const char* queueLabel = dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL);
+     if(*queueLabel != 0) {
+         s << " [from queue " << queueLabel;
+     } else
 #endif
-    {
-        s << " [from thread " << GetThreadName();
-    }
-     
+     {
+         s << " [from thread " << GetThreadName();
+     }
+
     if(after != 0) {
         s << " after " << after << " secs";
     }
@@ -61,20 +58,20 @@ using namespace litecore::actor;
     }
 }
 
-#ifdef ACTORS_USE_GCD
- void ChannelManifest::addExecution(const Actor* actor, dispatch_queue_t queue, const char* name) {
-#else
 void ChannelManifest::addExecution(const Actor* actor, const char* name) {
-#endif
     auto now = chrono::system_clock::now();
     auto elapsed = chrono::duration_cast<chrono::microseconds>(now - _start);
     stringstream s;
     s << actor->loggingName() << "::" << name;
 #ifdef ACTORS_USE_GCD
-    s << " [on queue " << dispatch_queue_get_label(queue) << "]";
-#else
-    s << " [on thread " << GetThreadName() << "]";
+     const char* queueLabel = dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL);
+     if(*queueLabel != 0) {
+         s << " [on queue " << queueLabel << "]";
+     } else
 #endif
+     {
+         s << " [on thread " << GetThreadName() << "]";
+     }
 
     {
         lock_guard<mutex> lock(_mutex);

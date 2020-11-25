@@ -163,10 +163,10 @@ extern LogDomain DBLog, QueryLog, SyncLog, &ActorLog;
 #define LogVerbose(DOMAIN, FMT, ...)    LogToAt(DOMAIN, Verbose, FMT, ##__VA_ARGS__)
 #define LogDebug(DOMAIN, FMT, ...)      LogToAt(DOMAIN, Debug, FMT, ##__VA_ARGS__)
 
-#define Debug(FMT, ...)                 LogToAt(kC4Cpp_DefaultLog, Debug,   FMT, ##__VA_ARGS__)
 #define Log(FMT, ...)                   LogToAt(kC4Cpp_DefaultLog, Info,    FMT, ##__VA_ARGS__)
 #define Warn(FMT, ...)                  LogToAt(kC4Cpp_DefaultLog, Warning, FMT, ##__VA_ARGS__)
 #define WarnError(FMT, ...)             LogToAt(kC4Cpp_DefaultLog, Error,   FMT, ##__VA_ARGS__)
+#define WriteDebug(FMT, ...)            LogToAt(kC4Cpp_DefaultLog, Debug,   FMT, ##__VA_ARGS__)
 #else
 #define LogToAt(DOMAIN, LEVEL, FMT, ARGS...) \
     ({if (_usuallyFalse((DOMAIN).willLog(LogLevel::LEVEL))) \

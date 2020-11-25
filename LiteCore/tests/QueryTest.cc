@@ -22,6 +22,7 @@
 #include <float.h>
 
 using namespace fleece::impl;
+using namespace std;
 
 static string local_to_utc(const char* format, int days, int hours, int minutes,
                                int hourOffset, int minuteOffset) {
@@ -1786,4 +1787,29 @@ TEST_CASE_METHOD(QueryTest, "Query Special Chars", "[Query]") {
         REQUIRE(e->next());
         CHECK(e->columns()[0]->asString() == "special"_sl);
     }
+}
+
+TEST_CASE_METHOD(QueryTest, "Query lower / upper equality", "[Query]") {
+    vector<string> vals { "testing", "TESTING", "tesTing", "test" };
+    vector<string> rIds { "r_1234", "r_5678", "r_6789", "r_678910" };
+    int i = 0;
+    {
+        Transaction t(db);
+        for(const auto& val : vals) {
+            writeDoc(slice(stringWithFormat("doc-%03d", i + 1)), DocumentFlags::kNone, t, [=](Encoder &enc) {
+                enc.writeKey("recordId");
+                enc.writeString(rIds[i]);
+                enc.writeKey("name");
+                enc.writeString(val);
+            });
+
+            i++;
+        }
+
+        t.commit();
+    }
+
+    Retained<Query> query = store->compileQuery(json5("['SELECT', {WHAT: [['.recordId']], WHERE: ['=', ['lower()', ['.name']], 'testing']}]"));
+    Retained<QueryEnumerator> e(query->createEnumerator());
+    CHECK(e->getRowCount() == 3);
 }
